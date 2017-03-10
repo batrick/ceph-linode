@@ -1,0 +1,6 @@
+[Unit]
+Description=Ceph log rotation
+
+[Service]
+ExecStart=/usr/sbin/logrotate /etc/logrotate.d/ceph
+Type=oneshot

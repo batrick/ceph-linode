@@ -1,0 +1,21 @@
+#!/bin/bash
+
+function run {
+    printf '%s\n' "$*" > /dev/tty
+    "$@"
+}
+
+function ssh_host {
+    # client83 ansible_ssh_host=66.228.32.173 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='id_rsa'
+    while read line; do
+        local host="$(cut -f1 -d' ' <<<"$line")"
+        local ipaddr="$(grep --only-matching '[[:digit:]]\+\.[[:digit:]]\+.[[:digit:]]\+.[[:digit:]]\+' <<< "$line")"
+
+        exec ssh -o UserKnownHostsFile=/dev/null -o 'StrictHostKeyChecking=no' -o PreferredAuthentications=publickey "root@$ipaddr" < /dev/tty
+        #run ssh -o 'StrictHostKeyChecking=no' root@"$ipaddr"
+    done
+}
+
+grep -P "^\t$1 " < ansible_inventory | head -n 1 | ssh_host
+echo no host matches >&2
+exit 1

@@ -1,0 +1,11 @@
+[Unit]
+Description=Ceph log rotation timer
+
+[Timer]
+AccuracySec=1ms
+OnBootSec=0s
+OnUnitActiveSec=5m
+Unit=ceph-log-rotate.service
+
+[Install]
+WantedBy=timers.target

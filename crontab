@@ -1,0 +1,1 @@
+* * * * * systemctl start --no-block ceph-log-rotate.service

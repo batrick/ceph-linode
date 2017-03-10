@@ -1,0 +1,4 @@
+ansible_inventory
+ansible.cfg
+linodes
+LINODE_GROUP

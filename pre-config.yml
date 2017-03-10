@@ -1,0 +1,51 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  # coredump capture setup
+  - name: capture coredumps
+    shell: mkdir -p -v -m 1777 /crash; echo kernel.core_pattern=/crash/%e-%h-%p-%t.core | tee -a /etc/sysctl.conf; sysctl -p; echo DefaultLimitCORE=infinity | tee -a /etc/systemd/system.conf; systemctl daemon-reexec;
+
+  # package setup
+  # - logrotate needs psmisc for killall
+  # - ceph-ansible needs EPEL but also needs ca-certificates installed to avoid some errors, do this now
+  - name: install launcher packages
+    yum: name=logrotate,psmisc,epel-release,ca-certificates,wget state=latest update_cache=yes
+  - name: update packages
+    shell: yum --disablerepo=epel -y update
+
+  # log rotation setup
+  - name: copy ceph-logrotate.timer
+    copy: src=ceph-log-rotate.timer dest=/etc/systemd/system/ owner=root group=root mode=644
+  - name: copy ceph-logrotate.service
+    copy: src=ceph-log-rotate.service dest=/etc/systemd/system/ owner=root group=root mode=644
+  - name: copy ceph logrotate config
+    copy: src=ceph.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
+ # Ideally we would use the ceph-logrotate.timer but systemd has a bug requiring cron
+  - name: copy crontab
+    copy: src=crontab dest=/root/ owner=root group=root mode=644
+  - name: register crontab
+    shell: crontab crontab
+  - name: check for mds logrotate config
+    local_action: stat path="ceph-mds.logrotate"
+    register: ceph_mds_logrotate
+    become: false
+  - name: check for osd logrotate config
+    local_action: stat path="ceph-osd.logrotate"
+    register: ceph_osd_logrotate
+    become: false
+
+- hosts: mdss
+  become: yes
+  tasks:
+  - name: copy ceph mds logrotate config
+    copy: src=ceph-mds.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
+    when: ceph_mds_logrotate
+
+- hosts: osds
+  become: yes
+  tasks:
+  - name: copy ceph osd logrotate config
+    copy: src=ceph-osd.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
+    when: ceph_osd_logrotate
