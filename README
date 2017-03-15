@@ -1,0 +1,11 @@
+To use:
+
+* Setup a Linode account and get an API key: https://www.linode.com/docs/platform/api/api-key
+
+* Clone ceph-ansible: https://github.com/ceph/ceph-ansible.git
+
+* Add a group_vars directory in this checkout with the necessary settings. See: https://github.com/ceph/ceph-ansible/wiki#common
+
+* Start using:
+
+    $ LINODE_API_KEY=ABC...DEF ./launch.sh --ceph-ansible /path/to/ceph-ansible
