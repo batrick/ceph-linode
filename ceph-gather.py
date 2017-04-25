@@ -167,7 +167,7 @@ class MDSStatus(DaemonStatus):
 
 class OSDStatus(DaemonStatus):
     type = "osd"
-    commands = ("perf dump", "status")
+    commands = ("dump_op_pq_state", "perf dump", "status")
     update = "INSERT INTO OSDStatus(id, dump_op_pq_state, perf_dump, status) VALUES (?, ?, ?, ?);"
 
 def main():
