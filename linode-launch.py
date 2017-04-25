@@ -42,14 +42,14 @@ CLUSTER = [
     "group": "mons",
   },
   {
-    "count": 3,
+    "count": 32,
     "prefix": "osd",
-    "plan": 1024,
-    "root_size": 4096,
+    "plan": 8192,
+    "root_size": 40*1024,
     "group": "osds",
   },
   {
-    "count": 1,
+    "count": 0,
     "prefix": "mds",
     "plan": 1024,
     "group": "mdss",
@@ -59,6 +59,12 @@ CLUSTER = [
     "prefix": "client",
     "plan": 1024,
     "group": "clients",
+  },
+  {
+    "count": 1,
+    "prefix": "mgr",
+    "plan": 1024,
+    "group": "mgrs",
   },
 ]
 

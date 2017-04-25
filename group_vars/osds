@@ -1,0 +1,5 @@
+---
+
+ceph_conf_overrides:
+  osd:
+    debug osd: 20

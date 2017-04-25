@@ -1,0 +1,5 @@
+---
+
+ceph_conf_overrides:
+  mon:
+    debug mon: 20

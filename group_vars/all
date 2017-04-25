@@ -1,0 +1,11 @@
+---
+
+ceph_dev: true
+ceph_dev_branch: wip-multimds-tests
+
+pool_default_pg_num: 4096
+
+ceph_conf_overrides:
+  client:
+    log file: /var/log/ceph/ceph-client-$pid.log
+    admin socket: /var/run/ceph/ceph-client-$pid.asok
