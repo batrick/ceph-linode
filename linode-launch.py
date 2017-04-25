@@ -55,7 +55,7 @@ CLUSTER = [
     "group": "mdss",
   },
   {
-    "count": 1,
+    "count": 16,
     "prefix": "client",
     "plan": 1024,
     "group": "clients",
