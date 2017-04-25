@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS MDSStatus (
 CREATE INDEX IF NOT EXISTS MDSStatus_TimestampIndex ON MDSStatus (timestamp);
 CREATE TABLE IF NOT EXISTS OSDStatus (
     id INTEGER NOT NULL REFERENCES Daemon(id),
+    dump_op_pq_state TEXT NOT NULL,
     perf_dump TEXT NOT NULL,
     status TEXT NOT NULL,
     timestamp DATETIME NOT NULL DEFAULT (strftime('%s', 'now')),
@@ -167,7 +168,7 @@ class MDSStatus(DaemonStatus):
 class OSDStatus(DaemonStatus):
     type = "osd"
     commands = ("perf dump", "status")
-    update = "INSERT INTO OSDStatus(id, perf_dump, status) VALUES (?, ?, ?);"
+    update = "INSERT INTO OSDStatus(id, dump_op_pq_state, perf_dump, status) VALUES (?, ?, ?, ?);"
 
 def main():
     db = sqlite3.connect(sys.argv[1])
