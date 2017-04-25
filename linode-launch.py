@@ -38,7 +38,7 @@ CLUSTER = [
   {
     "count": 3,
     "prefix": "mon",
-    "plan": 1024,
+    "plan": 8192,
     "group": "mons",
   },
   {

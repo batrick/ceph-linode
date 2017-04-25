@@ -1,5 +1,5 @@
 /var/log/ceph/*.log {
-    rotate 16
+    rotate 32
     compress
     sharedscripts
     postrotate
@@ -8,5 +8,5 @@
     missingok
     notifempty
     su root ceph
-    size 4G
+    size 8G
 }
