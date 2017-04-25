@@ -38,14 +38,14 @@ CLUSTER = [
   {
     "count": 3,
     "prefix": "mon",
-    "plan": 8192,
+    "plan": 1024,
     "group": "mons",
   },
   {
     "count": 32,
     "prefix": "osd",
-    "plan": 8192,
-    "root_size": 40*1024,
+    "plan": 1024,
+    "root_size": 4*1024,
     "group": "osds",
   },
   {
