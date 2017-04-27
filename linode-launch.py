@@ -44,8 +44,8 @@ CLUSTER = [
   {
     "count": 32,
     "prefix": "osd",
-    "plan": 1024,
-    "root_size": 4*1024,
+    "plan": 8192,
+    "root_size": 40*1024,
     "group": "osds",
   },
   {
@@ -55,7 +55,7 @@ CLUSTER = [
     "group": "mdss",
   },
   {
-    "count": 16,
+    "count": 8,
     "prefix": "client",
     "plan": 1024,
     "group": "clients",
