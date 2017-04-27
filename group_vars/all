@@ -3,6 +3,7 @@
 ceph_dev: true
 ceph_dev_branch: wip-multimds-tests
 bluestore: true
+osd_objectstore: bluestore
 
 pool_default_pg_num: 4096
 
