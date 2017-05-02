@@ -35,17 +35,28 @@
     local_action: stat path="ceph-osd.logrotate"
     register: ceph_osd_logrotate
     become: false
+  - name: check for mon logrotate config
+    local_action: stat path="ceph-mon.logrotate"
+    register: ceph_mon_logrotate
+    become: false
 
 - hosts: mdss
   become: yes
   tasks:
   - name: copy ceph mds logrotate config
     copy: src=ceph-mds.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
-    when: ceph_mds_logrotate
+    when: ceph_mds_logrotate.stat.exists
 
 - hosts: osds
   become: yes
   tasks:
   - name: copy ceph osd logrotate config
     copy: src=ceph-osd.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
-    when: ceph_osd_logrotate
+    when: ceph_osd_logrotate.stat.exists
+
+- hosts: mons
+  become: yes
+  tasks:
+  - name: copy ceph mon logrotate config
+    copy: src=ceph-mon.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
+    when: ceph_mon_logrotate.stat.exists
