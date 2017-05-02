@@ -34,7 +34,7 @@ function main {
     # Sometimes we hit transient errors, so retry until it works!
     if ! do_playbook --limit=all "$YML"; then
         # Always include the mons because we need their statistics to generate ceph.conf
-        printf 'mons\n' >> "$RETRY"
+        printf 'mons\nmgrs\n' >> "$RETRY"
         repeat do_playbook --limit=@"${RETRY}" "$YML"
         rm -f -- "${RETRY}"
     fi
