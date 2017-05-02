@@ -8,6 +8,8 @@ To use:
 
     $ virtualenv2 linode-env && source linode-env/bin/activate && pip install linode-python
 
+* Modify the CLUSTER variable in linode-launcy.py to have the desired count and Linode plan for each daemon type.
+
 * Add a group_vars directory in this checkout with the necessary settings. See: https://github.com/ceph/ceph-ansible/wiki#common
 
 * Start using:
