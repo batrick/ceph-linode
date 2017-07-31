@@ -56,6 +56,12 @@ CLUSTER = [
   },
   {
     "count": 1,
+    "prefix": "mgr",
+    "plan": 1024,
+    "group": "mgrs",
+  },
+  {
+    "count": 1,
     "prefix": "client",
     "plan": 1024,
     "group": "clients",
