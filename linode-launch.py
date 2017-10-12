@@ -2,6 +2,7 @@ import binascii
 import json
 import logging
 import os
+import sys
 
 from contextlib import closing, contextmanager
 from multiprocessing.dummy import Pool as ThreadPool
@@ -34,39 +35,16 @@ SSH_PRIVATE_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa"
 SSH_PUBLIC_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa.pub"
 with open(SSH_PUBLIC_KEY_FILE) as f:
     SSH_KEY = f.read()
-CLUSTER = [
-  {
-    "count": 3,
-    "prefix": "mon",
-    "plan": 1024,
-    "group": "mons",
-  },
-  {
-    "count": 3,
-    "prefix": "osd",
-    "plan": 1024,
-    "root_size": 4096,
-    "group": "osds",
-  },
-  {
-    "count": 1,
-    "prefix": "mds",
-    "plan": 1024,
-    "group": "mdss",
-  },
-  {
-    "count": 1,
-    "prefix": "mgr",
-    "plan": 1024,
-    "group": "mgrs",
-  },
-  {
-    "count": 1,
-    "prefix": "client",
-    "plan": 1024,
-    "group": "clients",
-  },
-]
+
+# read cluster definition (host types and their properties)
+
+try:
+    with open('cluster.json', 'r') as cl:
+        CLUSTER = json.load(cl, 'latin-1')
+except IOError as e:
+    print('file cluster.json not found')
+    sys.exit(1)
+print(json.dumps(CLUSTER, indent=4))
 
 linodes = []
 create_semaphore = BoundedSemaphore(15)
