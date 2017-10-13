@@ -187,7 +187,7 @@ def launch(client):
             f.write("[{}]\n".format(group))
             for linode in linodes:
                 if linode['group'] == group:
-                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode['ip_public'], SSH_PRIVATE_KEY_FILE))
+                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode['ip_private'], SSH_PRIVATE_KEY_FILE))
 
     with open("linodes", mode = 'w') as f:
         f.write(json.dumps(linodes))
