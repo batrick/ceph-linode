@@ -1,6 +1,7 @@
 import linode.api as linapi
 import logging
 import os
+import errno
 import time
 
 from contextlib import closing, contextmanager
@@ -10,6 +11,19 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(mes
 
 with open("LINODE_GROUP") as f:
     GROUP = unicode(f.read())
+
+# clear inventory file or else launch.sh won't create linodes
+
+ansible_inv_file = os.getenv('ANSIBLE_INVENTORY')
+if not ansible_inv_file:
+    ansible_inv_file = 'ansible_inventory'
+try:
+  os.unlink(ansible_inv_file)
+except OSError as e:
+    if e.errno != errno.ENOENT:
+        raise e
+
+logging.info('removed ansible inventory file %s' % ansible_inv_file)
 
 def nuke(client, linode):
     changed = False
@@ -36,6 +50,7 @@ def nuke(client, linode):
         client.linode_disk_delete(LinodeID = disk[u'LINODEID'], DiskID = disk[u'DISKID'])
         changed = True
 
+    client.linode_delete(LinodeID = linode[u'LINODEID'])
     return changed
 
 def newcb():
