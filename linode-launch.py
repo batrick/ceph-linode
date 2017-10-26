@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+import socket
 
 from contextlib import closing, contextmanager
 from multiprocessing.dummy import Pool as ThreadPool
@@ -165,7 +166,12 @@ def launch(client):
             f.write("[{}]\n".format(group))
             for linode in linodes:
                 if linode['group'] == group:
-                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode['ip_private'], SSH_PRIVATE_KEY_FILE))
+                    if socket.gethostname().endswith('.linode.com'):
+                        # assumes deployment node is at same site as ceph cluster
+                        ip_key = 'ip_private'
+                    else:
+                        ip_key = 'ip_public'
+                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode[ip_key]
 
     with open("linodes", mode = 'w') as f:
         f.write(json.dumps(linodes))
