@@ -171,7 +171,7 @@ def launch(client):
                         ip_key = 'ip_private'
                     else:
                         ip_key = 'ip_public'
-                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode[ip_key]
+                    f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'\n".format(linode['name'], linode[ip_key],  SSH_PRIVATE_KEY_FILE))
 
     with open("linodes", mode = 'w') as f:
         f.write(json.dumps(linodes))
