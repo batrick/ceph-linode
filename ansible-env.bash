@@ -5,7 +5,7 @@ export ANSIBLE_SSH_RETRIES=20
 export ANSIBLE_STDOUT_CALLBACK=debug
 
 SSH_COMMON_ARGS="-o ConnectTimeout=60 -o ConnectionAttempts=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ANSIBLE_ARGS="--timeout=60 -vv --forks=50 --become"
+ANSIBLE_ARGS="--timeout=60 -v --forks=50 --become"
 
 function repeat {
     while ! "$@"; do
