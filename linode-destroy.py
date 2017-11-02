@@ -35,5 +35,18 @@ def main():
     linodes = client.linode_list()
     logging.info("linodes: {}".format(linodes))
 
+    # clear inventory file or else launch.sh won't create linodes
+    
+    ansible_inv_file = os.getenv('ANSIBLE_INVENTORY')
+    if not ansible_inv_file:
+        ansible_inv_file = 'ansible_inventory'
+    try:
+      os.unlink(ansible_inv_file)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise e
+    
+    logging.info('removed ansible inventory file %s' % ansible_inv_file)
+
 if __name__ == "__main__":
     main()
