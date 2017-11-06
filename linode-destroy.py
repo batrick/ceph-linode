@@ -1,6 +1,7 @@
 import binascii
 import logging
 import os
+import errno
 
 from multiprocessing.dummy import Pool as ThreadPool
 
