@@ -4,13 +4,15 @@ To use:
 
 * Clone ceph-ansible: https://github.com/ceph/ceph-ansible.git
 
+* install python virtualenv package (exact package name may vary) unless you are using python3
+
 * Setup a virtualenv with linode-python:
 
-    $ virtualenv2 linode-env && source linode-env/bin/activate && pip install linode-python
+    $ virtualenv linode-env && source linode-env/bin/activate && pip install linode-python
 
-* Modify the CLUSTER variable in linode-launcy.py to have the desired count and Linode plan for each daemon type.
+* Modify cluster.json to have the desired count and Linode plan for each daemon type.  cluster.json.sample is provided as an example.
 
-* Add a group_vars directory in this checkout with the necessary settings. See: https://github.com/ceph/ceph-ansible/wiki#common
+* Edit linode.yml to define ceph-ansible vars. See: https://github.com/ceph/ceph-ansible/wiki#common
 
 * Start using:
 
