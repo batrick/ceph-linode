@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS MDSStatus (
     subtrees TEXT NOT NULL,
     ops TEXT NOT NULL,
     perf_dump TEXT NOT NULL,
+    dump_mempools TEXT NOT NULL,
     status TEXT NOT NULL,
     timestamp DATETIME NOT NULL DEFAULT (strftime('%s', 'now')),
     PRIMARY KEY (id, timestamp)
@@ -151,8 +152,8 @@ class ClientStatus(DaemonStatus):
 
 class MDSStatus(DaemonStatus):
     type = "mds"
-    commands = ("session ls", "ops", "perf dump", "status", "get subtrees")
-    update = "INSERT INTO MDSStatus(id, session_ls, ops, perf_dump, status, subtrees) VALUES (?, ?, ?, ?, ?, ?);"
+    commands = ("session ls", "ops", "perf dump", "dump_mempools", "status", "get subtrees")
+    update = "INSERT INTO MDSStatus(id, session_ls, ops, perf_dump, dump_mempools, status, subtrees) VALUES (?, ?, ?, ?, ?, ?);"
 
 def main():
     db = sqlite3.connect(sys.argv[1])
