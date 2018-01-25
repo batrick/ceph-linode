@@ -1,0 +1,11 @@
+[Unit]
+Description=ceph-gather
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python2 /ceph-gather.py /root/stats.db
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
