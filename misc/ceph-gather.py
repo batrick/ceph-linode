@@ -153,7 +153,7 @@ class ClientStatus(DaemonStatus):
 class MDSStatus(DaemonStatus):
     type = "mds"
     commands = ("session ls", "ops", "perf dump", "dump_mempools", "status", "get subtrees")
-    update = "INSERT INTO MDSStatus(id, session_ls, ops, perf_dump, dump_mempools, status, subtrees) VALUES (?, ?, ?, ?, ?, ?);"
+    update = "INSERT INTO MDSStatus(id, session_ls, ops, perf_dump, dump_mempools, status, subtrees) VALUES (?, ?, ?, ?, ?, ?, ?);"
 
 def main():
     db = sqlite3.connect(sys.argv[1])
