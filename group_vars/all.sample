@@ -1,0 +1,14 @@
+# This sample is just to note some common changes (some required by
+# ceph-ansible) to group_vars for a Linode deployment. These variables may go
+# out-of-date as ceph-ansible evolves.
+
+ceph_origin: repository
+ceph_repository: community
+ceph_stable_release: luminous
+copy_admin_key: true
+# For small Linode OSDs, a much smaller journal makes sense:
+journal_size: 100
+
+cephfs_pools:
+- {name: "cephfs_data", pgs: "512"}
+- {name: "cephfs_metadata", pgs: "128"}

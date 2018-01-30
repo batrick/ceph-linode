@@ -1,0 +1,6 @@
+# This sample is just to note some common changes (some required by
+# ceph-ansible) to group_vars for a Linode deployment. These variables may go
+# out-of-date as ceph-ansible evolves.
+
+osd_scenario: collocated
+osd_objectstore: filestore
