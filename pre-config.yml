@@ -60,3 +60,9 @@
   - name: copy ceph mon logrotate config
     copy: src=ceph-mon.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
     when: ceph_mon_logrotate.stat.exists
+
+- hosts: clients
+  become: yes
+  tasks:
+  - name: install nfs-utils
+    yum: name=nfs-utils state=latest update_cache=yes
