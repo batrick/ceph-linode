@@ -4,7 +4,5 @@
 - include: "{{ lookup('env','CEPH_ANSIBLE') }}/site.yml.sample"
   vars:
     cluster_network: 192.168.0.0/16
-    devices: [/dev/sdc]
-    journal_collocation: true
     monitor_address_block: 192.168.0.0/16
     public_network: 192.168.0.0/16
