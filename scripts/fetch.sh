@@ -24,11 +24,11 @@ function fetch_host {
     local ipaddr="$1"
     local host="$2"
 
-    run ssh -i ~/ansible.id_rsa -o PreferredAuthentications=publickey -o ConnectTimeout=60 -o ConnectionAttempts=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "root@${ipaddr}" 'gzip /var/log/ceph/*.log /crash/*.core'
+    run ssh -i ~/ansible.id_rsa -o PreferredAuthentications=publickey -o ConnectTimeout=60 -o ConnectionAttempts=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "root@${ipaddr}" 'systemctl stop ceph-gather.service; logrotate -f /etc/logrotate.d/ceph & gzip /crash/*.core /root/stats.db & wait;'
     run mkdir -p -m 755 ./logs/"$host" ./stats/"$host" ./crash/"$host"
     run get -r "root@${ipaddr}:/var/log/ceph/*.log*gz" ./logs/"$host"/
     run get -r "root@${ipaddr}":/crash/ ./crash/"$host"/
-    run get "root@${ipaddr}":/root/stats.db ./stats/"$host"/
+    run get "root@${ipaddr}":/root/stats.db.gz ./stats/"$host"/
 }
 
 run mkdir -p -m 755 ./crash
