@@ -1,53 +1,50 @@
-import binascii
+#!/usr/bin/env python
 import logging
 import os
+import time
+import socket
 import errno
-
-from multiprocessing.dummy import Pool as ThreadPool
-
-from contextlib import closing
-
-import linode.api as linapi
+import linode_api4
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-with open("LINODE_GROUP") as f:
-    GROUP = unicode(f.read())
-
 def main():
-    key = os.getenv("LINODE_API_KEY")
-    if key is None:
-        raise RuntimeError("please specify Linode API key")
+    token_fn = os.getenv("LINODE_API_TOKEN")
+    if token_fn is None:
+        raise RuntimeError("please specify Linode API token file")
+    with open(token_fn, 'r') as tf:
+        token = tf.readline().strip()
 
-    client = linapi.Api(key = key, batching = False)
+    # get my ipv6 addr, there should be only 1
+    addrinfo = socket.getaddrinfo(socket.gethostname(), 8765)[0]
+    (_, _, _, _, a) = addrinfo
+    (ipv6addr, _, _, _) = a
+    print('my ipv6addr = %s, dont delete this one' % ipv6addr)
+    client = linode_api4.LinodeClient(token)
+    instances = client.linode.instances()
+    for c in instances[1:]:
+        next_ipv6addr = c.ipv6.split('/')[0]
+        if next_ipv6addr != ipv6addr:
+            logging.info("deleting linode %s" % str(c))
+            c.delete()
 
-    def destroy(linode):
-        client.linode_delete(LinodeID = linode[u'LINODEID'], skipChecks = 1)
-
-    linodes = client.linode_list()
-    logging.info("linodes: {}".format(linodes))
-
-    with closing(ThreadPool(5)) as pool:
-        group = filter(lambda linode: linode[u'LPM_DISPLAYGROUP'] == GROUP, linodes)
-        pool.map(destroy, group)
-        pool.close()
-        pool.join()
-
-    linodes = client.linode_list()
-    logging.info("linodes: {}".format(linodes))
-
-    # clear inventory file or else launch.sh won't create linodes
-    
-    ansible_inv_file = os.getenv('ANSIBLE_INVENTORY')
-    if not ansible_inv_file:
-        ansible_inv_file = 'ansible_inventory'
+    volumes = client.volumes()
+    retry_list = volumes[:]
+    while len(retry_list) > 0:
+        for k, v in enumerate(retry_list):
+            logging.info("trying to delete volume %s"  % str(v))
+            try:
+                v.delete()
+                retry_list.remove(v)
+            except linode_api4.errors.ApiError as e:
+                logging.error(str(e))
+                logging.info('probably instance is not shut down yet, pausing 5 sec')
+                time.sleep(5)
     try:
-      os.unlink(ansible_inv_file)
+        os.unlink('ansible_inventory')
     except OSError as e:
         if e.errno != errno.ENOENT:
             raise e
-    
-    logging.info('removed ansible inventory file %s' % ansible_inv_file)
 
 if __name__ == "__main__":
     main()
