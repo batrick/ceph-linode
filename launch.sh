@@ -22,22 +22,13 @@ function main {
     fi
     # wait for Linodes to finish booting
     time python2 "$(dirname "$0")/linode-wait.py"
+    sleep 5
 
-    do_playbook --limit=all "$(dirname "$0")/pre-config.yml"
+    do_playbook "$(dirname "$0")/pre-config.yml"
 
-    if [ "$NUKE" -gt 0 ]; then
-        # /dev/sdc is sometimes not wiped after linode-nuke.py
-        # (Linode wipes deleted disks on a schedule rather than immediately.)
-        ans --module-name=shell --args='wipefs -a /dev/sdc' osds
-    fi
-
-    # Sometimes we hit transient errors, so retry until it works!
-    if ! do_playbook --limit=all "$YML"; then
-        # Always include the mons because we need their statistics to generate ceph.conf
-        printf 'mons\nmgrs\n' >> "$RETRY"
-        do_playbook --limit=@"${RETRY}" "$YML"
-        rm -f -- "${RETRY}"
-    fi
+    cp $ANSIBLE_INVENTORY $CEPH_ANSIBLE
+    cd $CEPH_ANSIBLE
+    do_playbook site.yml.sample
 }
 
 ARGUMENTS='--options c:,h,n,l: --long ceph-ansible:,help,nuke,log:'
@@ -89,6 +80,7 @@ fi
 cat > ansible.cfg <<EOF
 # Managed by launch.sh, do not modify!
 [defaults]
+forks = 25
 action_plugins = ${CEPH_ANSIBLE}/plugins/actions
 library = ${CEPH_ANSIBLE}/library
 roles_path = ${CEPH_ANSIBLE}/roles
