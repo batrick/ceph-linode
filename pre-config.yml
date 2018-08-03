@@ -40,6 +40,10 @@
     register: ceph_mon_logrotate
     become: false
 
+  # one of these two firewall services is generally in a Linux distro
+  - name: ensure that firewall is off
+    shell: "(systemctl stop firewalld && systemctl disable firewalld) || (systemctl stop iptables && systemctl disable iptables)"
+
 - hosts: mdss
   become: yes
   tasks:
