@@ -1,0 +1,25 @@
+# This sample is just to note some common changes (some required by
+# ceph-ansible) to group_vars for a Linode deployment. These variables may go
+# out-of-date as ceph-ansible evolves.
+
+ceph_origin: repository
+ceph_repository: community
+ceph_stable_release: luminous
+nfs_ganesha_dev: true
+copy_admin_key: true
+#pool_default_size: 1
+ceph_conf_overrides:
+  mon:
+        mon allow pool delete: true
+monitor_interface: eth0
+ip_version: ipv6
+cluster: ceph
+public_network: 2600:3c03::/64
+monitor_address_block: 2600:3c03::/64
+radosgw_address_block: 2600:3c03::/64
+osd_objectstore: filestore
+journal_size: 1000
+cephfs_pools:
+- {name: "cephfs_data", pgs: "128"}
+- {name: "cephfs_metadata", pgs: "32"}
+cephfs_data: cephfs_data
