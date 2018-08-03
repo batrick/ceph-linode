@@ -9,15 +9,18 @@ source "$(dirname "$0")/ansible-env.bash"
 
 CEPH_ANSIBLE=~/ceph-ansible/
 NUKE=0
+DESTROY=0
 LOG=OUTPUT
 YML="$(dirname "$0")/linode.yml"
 RETRY="${YML%.*}.retry"
 
 function main {
-    if [ "$NUKE" -gt 0 ]; then
+    if [ "$DESTROY" -gt 0 ]; then
+        time python2 "$(dirname "$0")/linode-destroy.py"
+    elif [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
         time python2 "$(dirname "$0")/linode-nuke.py"
     fi
-    if [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
+    if [ "$NUKE" -gt 0 -o "$DESTROY" -gt 0 -o ! -f ansible_inventory ]; then
         time python2 "$(dirname "$0")/linode-launch.py"
     fi
     # wait for Linodes to finish booting
@@ -31,7 +34,7 @@ function main {
     do_playbook site.yml.sample
 }
 
-ARGUMENTS='--options c:,h,n,l: --long ceph-ansible:,help,nuke,log:'
+ARGUMENTS='--options c:,h,n,d,l: --long ceph-ansible:,help,nuke,log:'
 NEW_ARGUMENTS=$(getopt $ARGUMENTS -- "$@")
 eval set -- "$NEW_ARGUMENTS"
 
@@ -49,6 +52,10 @@ while [ "$#" -ge 0 ]; do
         -h|--help)
             usage
             exit
+            ;;
+        -d|--destroy)
+            DESTROY=1
+            shift
             ;;
         -n|--nuke)
             NUKE=1
