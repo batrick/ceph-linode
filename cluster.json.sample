@@ -1,33 +1,33 @@
 [
   {
-    "count": 3,
+    "count": 1,
     "prefix": "mon",
-    "plan": 1,
+    "plan": "g6-standard-2",
     "group": "mons"
   },
   {
-    "count": 3,
+    "count": 4,
     "prefix": "osd",
-    "plan": 1,
-    "root_size": 4096,
+    "plan": "g6-standard-4",
+    "volume-size": 20,
     "group": "osds"
   },
   {
     "count": 1,
     "prefix": "mds",
-    "plan": 1,
+    "plan": "g6-standard-4",
     "group": "mdss"
   },
   {
     "count": 1,
     "prefix": "mgr",
-    "plan": 1,
+    "plan": "g6-standard-2",
     "group": "mgrs"
   },
   {
-    "count": 1,
+    "count": 4,
     "prefix": "client",
-    "plan": 1,
+    "plan": "g6-standard-2",
     "group": "clients"
   }
 ]
