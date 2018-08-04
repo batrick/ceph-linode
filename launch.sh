@@ -13,21 +13,33 @@ DESTROY=0
 LOG=OUTPUT
 YML="$(dirname "$0")/linode.yml"
 RETRY="${YML%.*}.retry"
+mydir=$(dirname "$0")
 
 function main {
     if [ "$DESTROY" -gt 0 ]; then
-        time python2 "$(dirname "$0")/linode-destroy.py"
+        time python2 "$mydir/linode-destroy.py"
     elif [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
-        time python2 "$(dirname "$0")/linode-nuke.py"
+        time python2 "$mydir/linode-nuke.py"
     fi
     if [ "$NUKE" -gt 0 -o "$DESTROY" -gt 0 -o ! -f ansible_inventory ]; then
-        time python2 "$(dirname "$0")/linode-launch.py"
+        time python2 "$mydir/linode-launch.py"
     fi
+
     # wait for Linodes to finish booting
-    time python2 "$(dirname "$0")/linode-wait.py"
+    time python2 "$mydir/linode-wait.py"
     sleep 5
 
-    do_playbook "$(dirname "$0")/pre-config.yml"
+    # create /etc/hosts file on each linode with all ipv6 addrs that we need
+    grep localhost /etc/hosts > hosts
+    ./inventory2hosts.py $ANSIBLE_INVENTORY >> hosts
+    ansible -m copy -a 'src=hosts dest=/etc/' all
+
+    # prepare the hosts to run ceph-ansible
+
+    do_playbook "$mydir/pre-config.yml"
+
+    # run ceph-ansible from inside the top of its tree so we inherit files like
+    # ansible.cfg
 
     cp $ANSIBLE_INVENTORY $CEPH_ANSIBLE
     cd $CEPH_ANSIBLE
