@@ -9,38 +9,45 @@ source "$(dirname "$0")/ansible-env.bash"
 
 CEPH_ANSIBLE=~/ceph-ansible/
 NUKE=0
+DESTROY=0
 LOG=OUTPUT
 YML="$(dirname "$0")/linode.yml"
 RETRY="${YML%.*}.retry"
+mydir=$(dirname "$0")
 
 function main {
-    if [ "$NUKE" -gt 0 ]; then
-        time python2 "$(dirname "$0")/linode-nuke.py"
+    if [ "$DESTROY" -gt 0 ]; then
+        time python2 "$mydir/linode-destroy.py"
+    elif [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
+        time python2 "$mydir/linode-nuke.py"
     fi
-    if [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
-        time python2 "$(dirname "$0")/linode-launch.py"
+    if [ "$NUKE" -gt 0 -o "$DESTROY" -gt 0 -o ! -f ansible_inventory ]; then
+        time python2 "$mydir/linode-launch.py"
     fi
+
     # wait for Linodes to finish booting
-    time python2 "$(dirname "$0")/linode-wait.py"
+    time python2 "$mydir/linode-wait.py"
+    sleep 5
 
-    do_playbook --limit=all "$(dirname "$0")/pre-config.yml"
+    # create /etc/hosts file on each linode with all ipv6 addrs that we need
+    grep localhost /etc/hosts > hosts
+    ./inventory2hosts.py $ANSIBLE_INVENTORY >> hosts
+    cp hosts /etc/
+    ansible -m copy -a 'src=hosts dest=/etc/' all
 
-    if [ "$NUKE" -gt 0 ]; then
-        # /dev/sdc is sometimes not wiped after linode-nuke.py
-        # (Linode wipes deleted disks on a schedule rather than immediately.)
-        ans --module-name=shell --args='wipefs -a /dev/sdc' osds
-    fi
+    # prepare the hosts to run ceph-ansible
 
-    # Sometimes we hit transient errors, so retry until it works!
-    if ! do_playbook --limit=all "$YML"; then
-        # Always include the mons because we need their statistics to generate ceph.conf
-        printf 'mons\nmgrs\n' >> "$RETRY"
-        do_playbook --limit=@"${RETRY}" "$YML"
-        rm -f -- "${RETRY}"
-    fi
+    do_playbook "$mydir/pre-config.yml"
+
+    # run ceph-ansible from inside the top of its tree so we inherit files like
+    # ansible.cfg
+
+    cp $ANSIBLE_INVENTORY $CEPH_ANSIBLE
+    cd $CEPH_ANSIBLE
+    do_playbook site.yml.sample
 }
 
-ARGUMENTS='--options c:,h,n,l: --long ceph-ansible:,help,nuke,log:'
+ARGUMENTS='--options c:,h,n,d,l: --long ceph-ansible:,help,nuke,log:'
 NEW_ARGUMENTS=$(getopt $ARGUMENTS -- "$@")
 eval set -- "$NEW_ARGUMENTS"
 
@@ -58,6 +65,10 @@ while [ "$#" -ge 0 ]; do
         -h|--help)
             usage
             exit
+            ;;
+        -d|--destroy)
+            DESTROY=1
+            shift
             ;;
         -n|--nuke)
             NUKE=1
@@ -89,6 +100,7 @@ fi
 cat > ansible.cfg <<EOF
 # Managed by launch.sh, do not modify!
 [defaults]
+forks = 25
 action_plugins = ${CEPH_ANSIBLE}/plugins/actions
 library = ${CEPH_ANSIBLE}/library
 roles_path = ${CEPH_ANSIBLE}/roles

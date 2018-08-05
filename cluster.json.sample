@@ -1,33 +1,33 @@
-[
-  {
-    "count": 3,
-    "prefix": "mon",
-    "plan": 1,
-    "group": "mons"
-  },
-  {
-    "count": 3,
-    "prefix": "osd",
-    "plan": 1,
-    "root_size": 4096,
-    "group": "osds"
-  },
-  {
-    "count": 1,
-    "prefix": "mds",
-    "plan": 1,
-    "group": "mdss"
-  },
-  {
-    "count": 1,
-    "prefix": "mgr",
-    "plan": 1,
-    "group": "mgrs"
-  },
-  {
-    "count": 1,
-    "prefix": "client",
-    "plan": 1,
-    "group": "clients"
-  }
-]
+{
+  "region":"us-east",
+  "image":"linode/centos7",
+  "roles": [
+   {
+    "count":1,
+    "prefix":"mon",
+    "plan":"g6-standard-1"
+   },
+   {
+    "count":3,
+    "prefix":"osd",
+    "plan":"g6-standard-8",
+    "osd-size-GB":40,
+    "osds-per-host":2
+   },
+   {
+    "count":1,
+    "prefix":"mds",
+    "plan":"g6-standard-4"
+   },
+   {
+    "count":1,
+    "prefix":"mgr",
+    "plan":"g6-standard-2"
+   },
+   {
+    "count":3,
+    "prefix":"client",
+    "plan":"g6-standard-2"
+   }
+  ]
+}
