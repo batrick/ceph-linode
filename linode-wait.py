@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import binascii
 import logging
+import sys
 import os
 import time
 import subprocess
@@ -10,11 +11,9 @@ homedir = os.getenv('HOME')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
-def wait(keyfn):
-    with open(keyfn, 'r') as kf:
-        key = kf.readline().strip()
-    client = linode_api4.LinodeClient(key)
-    linodes = [ l for l in client.linode.instances() ]
+def wait(token, my_group):
+    client = linode_api4.LinodeClient(token)
+    linodes = [ l for l in client.linode.instances(linode_api4.Instance.group == my_group) ]
 
     linodes_not_up = linodes[:]
     while len(linodes) > 0:
@@ -35,11 +34,20 @@ def wait(keyfn):
         linodes = linodes_not_up[:]
 
 def main():
-    key = os.getenv("LINODE_API_KEY")
-    if key is None:
-        raise RuntimeError("please specify Linode API key")
+    tokenfn = os.getenv("LINODE_API_KEY")
+    if tokenfn is None:
+        raise RuntimeError("please specify Linode API token filename")
+    with open(tokenfn, 'r') as kf:
+        token = kf.readline().strip()
 
-    wait(key)
+    try:
+        with open('LINODE_GROUP', 'r') as gf:
+            my_group = gf.readline().strip()
+    except FileNotFoundError:
+        print('no LINODE_GROUP file defined, so nothing to wait for')
+        sys.exit(0)
+
+    wait(token, my_group)
 
 if __name__ == "__main__":
     main()
