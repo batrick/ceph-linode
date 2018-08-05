@@ -1,0 +1,12 @@
+# sample json for a small Ceph cluster
+# all values are strings unless otherwise stated
+# top-level dictionary contains:
+#   region - optional, default us-east
+#   image -  optional, default linode/centos7
+#   roles -  required, list of ceph-ansible roles  
+#   for each role:
+#       count - integer, number of linodes in role
+#       prefix - which ansible role, also used to generate label
+#       plan - unique substring of a linode plan id
+#       osd-size-GB - optional, integer, default 20 (GB)
+#       osds-per-host - optional, integer default 1
