@@ -32,6 +32,7 @@ function main {
     # create /etc/hosts file on each linode with all ipv6 addrs that we need
     grep localhost /etc/hosts > hosts
     ./inventory2hosts.py $ANSIBLE_INVENTORY >> hosts
+    cp hosts /etc/
     ansible -m copy -a 'src=hosts dest=/etc/' all
 
     # prepare the hosts to run ceph-ansible
