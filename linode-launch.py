@@ -29,9 +29,6 @@ def releasing(semaphore):
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-DATACENTER = "Newark"
-DISTRIBUTION = "CentOS 7"
-KERNEL = "Latest 64 bit"
 SSH_PRIVATE_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa"
 SSH_PUBLIC_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa.pub"
 with open(SSH_PUBLIC_KEY_FILE) as f:
@@ -144,14 +141,19 @@ def launch(client):
     distributions = client.avail_distributions()
     kernels = client.avail_kernels()
 
-    datacenter = filter(lambda d: d[u'LOCATION'].lower().find(DATACENTER.lower()) >= 0, datacenters)[0][u'DATACENTERID']
-    distribution = filter(lambda d: d[u'LABEL'].lower().find(DISTRIBUTION.lower()) >= 0, distributions)[0][u'DISTRIBUTIONID']
-    kernel = filter(lambda k: k[u'LABEL'].lower().find(str(KERNEL).lower()) >= 0, kernels)[0][u'KERNELID']
+    datacenter = filter(lambda d: d[u'LOCATION'].lower().find(CLUSTER['datacenter'].lower()) >= 0, datacenters)[0][u'DATACENTERID']
+    distribution = filter(lambda d: d[u'LABEL'].lower().find(CLUSTER['distribution'].lower()) >= 0, distributions)[0][u'DISTRIBUTIONID']
+    if isinstance(CLUSTER['kernel'], str) or isinstance(CLUSTER['kernel'], unicode):
+        kernel = filter(lambda k: k[u'LABEL'].lower().find(str(CLUSTER['kernel']).lower()) >= 0, kernels)[0][u'KERNELID']
+    elif isinstance(CLUSTER['kernel'], int):
+        kernel = CLUSTER['kernel']
+    else:
+        raise RuntimeError("kernel field bad")
 
     running = client.linode_list()
 
     with closing(ThreadPool(50)) as pool:
-        for machine in CLUSTER:
+        for machine in CLUSTER['nodes']:
             for i in range(machine['count']):
                 logging.info("%s", "i={i}".format(i=i))
                 pool.apply_async(create, (client, running, datacenter, plans, distribution, kernel, machine, i))

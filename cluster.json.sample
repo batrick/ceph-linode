@@ -1,33 +1,38 @@
-[
-  {
-    "count": 3,
-    "prefix": "mon",
-    "plan": 1,
-    "group": "mons"
-  },
-  {
-    "count": 3,
-    "prefix": "osd",
-    "plan": 1,
-    "root_size": 4096,
-    "group": "osds"
-  },
-  {
-    "count": 1,
-    "prefix": "mds",
-    "plan": 1,
-    "group": "mdss"
-  },
-  {
-    "count": 1,
-    "prefix": "mgr",
-    "plan": 1,
-    "group": "mgrs"
-  },
-  {
-    "count": 1,
-    "prefix": "client",
-    "plan": 1,
-    "group": "clients"
-  }
-]
+{
+  "datacenter": "Newark",
+  "distribution": "CentOS 7",
+  "kernel": 210,
+  "nodes": [
+      {
+        "count": 3,
+        "prefix": "mon",
+        "plan": 1,
+        "group": "mons"
+      },
+      {
+        "count": 3,
+        "prefix": "osd",
+        "plan": 1,
+        "root_size": 4096,
+        "group": "osds"
+      },
+      {
+        "count": 1,
+        "prefix": "mds",
+        "plan": 1,
+        "group": "mdss"
+      },
+      {
+        "count": 1,
+        "prefix": "mgr",
+        "plan": 1,
+        "group": "mgrs"
+      },
+      {
+        "count": 1,
+        "prefix": "client",
+        "plan": 1,
+        "group": "clients"
+      }
+  ]
+}
