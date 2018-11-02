@@ -3,7 +3,9 @@ for running ceph-ansible. This reduces latency of operations, internet hiccups,
 and also allows you to allocate enough RAM for memory-hungry ansible. The more
 RAM/cores the better. **Also**: make sure to enable a private IP address on the
 ansible linode otherwise ansible will not be able to communicate with the ceph
-cluster.
+cluster:
+
+    https://www.linode.com/docs/platform/manager/remote-access/#adding-private-ip-addresses
 
 **To use**:
 
