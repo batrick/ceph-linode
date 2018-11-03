@@ -11,7 +11,7 @@
   # - logrotate needs psmisc for killall
   # - ceph-ansible needs EPEL but also needs ca-certificates installed to avoid some errors, do this now
   - name: install launcher packages
-    yum: name=logrotate,psmisc,epel-release,ca-certificates,wget state=latest update_cache=yes
+    yum: name=logrotate,psmisc,epel-release,ca-certificates,wget,ntp state=latest update_cache=yes
   - name: update packages
     shell: yum --disablerepo=epel -y update
 
