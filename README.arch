@@ -1,5 +1,0 @@
-For deployments via Arch Linux:
-
-pacman -Syu python-netaddr python2-netaddr python-pip python2-pip
-pip3 install notario
-pip2 install notario
