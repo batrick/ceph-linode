@@ -19,12 +19,12 @@ cluster:
 
   Fedora:
 
-    dnf install screen git ansible python2-notario python2-virtualenv python2-pip python2-netaddr
+    dnf install screen git ansible python2-notario python2-virtualenv python2-pip python2-netaddr jq
     pip2 install linode-python
 
   Arch Linux:
 
-    pacman -Syu screen git ansible python2-netaddr python2-pip
+    pacman -Syu screen git ansible python2-netaddr python2-pip jq
     pip2 install notario
     pip2 install linode-python
 
