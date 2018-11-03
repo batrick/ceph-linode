@@ -37,7 +37,6 @@ def main():
     logging.info("linodes: {}".format(linodes))
 
     # clear inventory file or else launch.sh won't create linodes
-    
     ansible_inv_file = os.getenv('ANSIBLE_INVENTORY')
     if not ansible_inv_file:
         ansible_inv_file = 'ansible_inventory'
