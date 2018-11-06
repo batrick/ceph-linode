@@ -1,0 +1,5 @@
+- hosts: clients
+  become: yes
+  tasks:
+    - name: mount kcephfs
+      shell: mount -t ceph $(grep 'mon host' /etc/ceph/ceph.conf | tr -d '[[:space:][:alpha:]=]'):/ /mnt -o secret=$(grep key /etc/ceph/ceph.client.admin.keyring | awk '{print $3}'),name=admin
