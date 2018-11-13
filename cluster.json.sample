@@ -6,32 +6,32 @@
       {
         "count": 3,
         "prefix": "mon",
-        "plan": 1,
+        "plan": "1GB",
         "group": "mons"
       },
       {
         "count": 3,
         "prefix": "osd",
-        "plan": 1,
+        "plan": "1GB",
         "root_size": 4096,
         "group": "osds"
       },
       {
         "count": 1,
         "prefix": "mds",
-        "plan": 1,
+        "plan": "1GB",
         "group": "mdss"
       },
       {
         "count": 1,
         "prefix": "mgr",
-        "plan": 1,
+        "plan": "1GB",
         "group": "mgrs"
       },
       {
         "count": 1,
         "prefix": "client",
-        "plan": 1,
+        "plan": "1GB",
         "group": "clients"
       }
   ]

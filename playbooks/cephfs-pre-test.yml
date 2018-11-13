@@ -1,0 +1,11 @@
+---
+
+- import_playbook: kernel-umount.yml
+
+- import_playbook: ceph-clear-state.yml
+
+- import_playbook: ceph-drop-cache.yml
+
+- import_playbook: kernel-mount.yml
+
+- import_playbook: ceph-gather-cephfs.yml

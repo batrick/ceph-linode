@@ -4,8 +4,21 @@
   become: yes
   tasks:
   # coredump capture setup
-  - name: capture coredumps
-    shell: mkdir -p -v -m 1777 /crash; echo kernel.core_pattern=/crash/%e-%h-%p-%t.core | tee -a /etc/sysctl.conf; sysctl -p; echo DefaultLimitCORE=infinity | tee -a /etc/systemd/system.conf; systemctl daemon-reexec;
+  - name: create crash directory
+    file:
+      path: /crash
+      state: directory
+      owner: root
+      group: root
+      mode: 1777
+
+  - name: set core_pattern
+    sysctl:
+      name: kernel.core_pattern
+      value: /crash/%e-%h-%p-%t.core
+
+  - name: raise coredump limit for systemd services
+    shell: echo DefaultLimitCORE=infinity | tee -a /etc/systemd/system.conf; systemctl daemon-reexec;
 
   # package setup
   # - logrotate needs psmisc for killall
@@ -22,27 +35,21 @@
     copy: src=ceph-log-rotate.service dest=/etc/systemd/system/ owner=root group=root mode=644
   - name: copy ceph logrotate config
     copy: src=ceph.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
+
  # Ideally we would use the ceph-logrotate.timer but systemd has a bug requiring cron
   - name: copy crontab
     copy: src=crontab dest=/root/ owner=root group=root mode=644
   - name: register crontab
     shell: crontab crontab
-  - name: check for mds logrotate config
-    local_action: stat path="ceph-mds.logrotate"
-    register: ceph_mds_logrotate
-    become: false
-  - name: check for osd logrotate config
-    local_action: stat path="ceph-osd.logrotate"
-    register: ceph_osd_logrotate
-    become: false
-  - name: check for mon logrotate config
-    local_action: stat path="ceph-mon.logrotate"
-    register: ceph_mon_logrotate
-    become: false
 
 - hosts: mdss
   become: yes
   tasks:
+  - name: check for mds logrotate config
+    local_action: stat path="ceph-mds.logrotate"
+    register: ceph_mds_logrotate
+    become: false
+
   - name: copy ceph mds logrotate config
     copy: src=ceph-mds.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
     when: ceph_mds_logrotate.stat.exists
@@ -50,6 +57,11 @@
 - hosts: osds
   become: yes
   tasks:
+  - name: check for osd logrotate config
+    local_action: stat path="ceph-osd.logrotate"
+    register: ceph_osd_logrotate
+    become: false
+
   - name: copy ceph osd logrotate config
     copy: src=ceph-osd.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
     when: ceph_osd_logrotate.stat.exists
@@ -57,6 +69,11 @@
 - hosts: mons
   become: yes
   tasks:
+  - name: check for mon logrotate config
+    local_action: stat path="ceph-mon.logrotate"
+    register: ceph_mon_logrotate
+    become: false
+
   - name: copy ceph mon logrotate config
     copy: src=ceph-mon.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
     when: ceph_mon_logrotate.stat.exists

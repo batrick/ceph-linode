@@ -1,0 +1,129 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: create hosts from inventory
+    shell: ../scripts/inventory2hosts.py ../ansible_inventory
+    register: invhosts
+    run_once: true
+    delegate_to: localhost
+
+  - name: cp hosts to all
+    copy:
+      content: "{{ invhosts.stdout }}"
+      dest: /etc/hosts
+
+  - name: cp hosts to localhost
+    copy:
+      content: "{{ invhosts.stdout }}"
+      dest: /etc/hosts
+    run_once: true
+    delegate_to: localhost
+
+  - name: cp ceph-gather.py
+    copy: src=../misc/ceph-gather.py dest=/ owner=root group=root mode=0755
+
+  - name: cp ceph-gather.service
+    copy: src=../misc/ceph-gather.service dest=/etc/systemd/system/ owner=root group=root mode=0644
+
+  - name: install packages
+    yum: name=htop,jq
+
+  - name: create htoprc dir
+    file: path=/root/.config/htop state=directory
+
+  - name: install htoprc
+    copy: src=../misc/htoprc dest=/root/.config/htop/ owner=root group=root mode=0644
+
+- hosts: mon-000
+  become: yes
+  vars:
+    target_pgs_per_osd: 128
+    replicas: 3
+    dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3 osd.4 osd.5
+  tasks:
+  - name: set all file systems down
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
+  - name: fail all ranks
+    shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
+  - name: destroy all file systems
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
+  # This config set doesn't work for some reason; use group_vars instead I guess
+  - name: allow pool deletion
+    shell: ceph tell mon.* config set mon_allow_pool_delete 1
+  - name: destroy all pools
+    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
+
+  - name: setup crush rules for metadata pool
+    shell: "ceph osd crush rm-device-class {{ dedicated_metadata_osds }}"
+  - name: setup crush rules for metadata pool
+    shell: "ceph osd crush set-device-class hdd-meta {{ dedicated_metadata_osds }}"
+  - name: create replicated crush rule default
+    shell: ceph osd crush rule create-replicated class-hdd default host hdd
+  - name: create replicated crush rule metadata
+    shell: ceph osd crush rule create-replicated class-hdd-meta default host hdd-meta
+
+- hosts: mdss
+  become: yes
+  tasks:
+  - name: install ceph debug packages
+    yum:
+      name: ceph-debuginfo
+      state: present
+
+# Make sure /cephfs is unmounted if it exists otherwise the check that creates /mnt will hang.
+- import_playbook: kernel-umount.yml
+
+- hosts: clients
+  become: yes
+  tasks:
+  # Use mode=0000 to prevent tests blindly running on local file system.
+  - name: set mnt dir
+    file:
+      path: /cephfs/
+      state: directory
+      owner: root
+      group: root
+      mode: '0000'
+
+  - name: install dependencies
+    yum:
+      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml
+      state: present
+
+  - name: install Development tools
+    yum:
+      name: "@Development tools"
+      state: present
+
+  - name: clone smallfile
+    git:
+      repo: https://github.com/bengland2/smallfile
+      dest: /root/smallfile
+      update: no
+
+  - name: check for ssh key
+    find:
+      paths: .ssh/
+      patterns: "id_rsa.pub"
+    register: find_ssh
+    delegate_to: client-000
+    run_once: true
+
+  - name: create ssh key
+    shell: ssh-keygen -b 4096 -t rsa -f /root/.ssh/id_rsa -q -N ""
+    when: find_ssh.matched == 0
+    delegate_to: client-000
+    run_once: true
+
+  - name: get public key
+    shell: cat .ssh/id_rsa.pub
+    register: client000pub
+    delegate_to: client-000
+    run_once: true
+
+  - name: register client-000 public key with other clients
+    lineinfile:
+      path: .ssh/authorized_keys
+      line: "{{ client000pub.stdout }}"

@@ -1,0 +1,48 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: forcibly rotate logs
+    shell: logrotate -f /etc/logrotate.d/ceph
+    retries: 3
+    delay: 5
+    register: result
+    until: result.rc == 0 # handle transient failures
+
+  - name: get old state file paths
+    find:
+      paths: /root/
+      patterns: '*.txt'
+    register: state_paths
+
+  - name: remove old state files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ state_paths.files }}"
+
+  - name: get old core file paths
+    find:
+      paths: /crash/
+      patterns: '*'
+    register: core_paths
+
+  - name: remove old cores
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ core_paths.files }}"
+
+  - name: get old log paths
+    find:
+      paths: /var/log/ceph/
+      patterns: '*log*gz'
+    register: log_paths
+
+  - name: remove old logs
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ log_paths.files }}"
+

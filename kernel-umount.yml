@@ -1,5 +1,0 @@
-- hosts: clients
-  become: yes
-  tasks:
-    - name: umount kcephfs
-      shell: umount /mnt
