@@ -24,16 +24,17 @@ function fetch_host {
     local ipaddr="$1"
     local host="$2"
 
-    run ssh -i ~/ansible.id_rsa -o PreferredAuthentications=publickey -o ConnectTimeout=60 -o ConnectionAttempts=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "root@${ipaddr}" 'systemctl stop ceph-gather.service; logrotate -f /etc/logrotate.d/ceph & gzip /crash/*.core /root/stats.db & wait;'
-    run mkdir -p -m 755 ./logs/"$host" ./stats/"$host" ./crash/"$host"
+    run mkdir -p -m 755 ./logs/"$host" ./stats/"$host" ./crash/"$host" ./state/"$host"
     run get -r "root@${ipaddr}:/var/log/ceph/*.log*gz" ./logs/"$host"/
     run get -r "root@${ipaddr}":/crash/ ./crash/"$host"/
     run get "root@${ipaddr}":/root/stats.db.gz ./stats/"$host"/
+    run get "root@${ipaddr}":'/root/*.txt' ./state/"$host"/
 }
 
 run mkdir -p -m 755 ./crash
 run mkdir -p -m 755 ./logs
 run mkdir -p -m 755 ./stats
+run mkdir -p -m 755 ./state
 
 function fetch_group {
     < linodes jq -rc ".[] | select(.name | contains(\"$1\")) | .ip_public, .name" | (while read ip; do

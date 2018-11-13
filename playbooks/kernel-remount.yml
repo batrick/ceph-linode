@@ -1,0 +1,5 @@
+- hosts: clients
+  become: yes
+  tasks:
+    - name: remount kcephfs
+      shell: mount -o remount /cephfs

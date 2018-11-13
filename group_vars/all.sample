@@ -13,3 +13,7 @@ cephfs_pools:
 - {name: "cephfs_data", pgs: "8"}
 - {name: "cephfs_metadata", pgs: "8"}
 cephfs_data: cephfs_data
+
+ceph_conf_overrides:
+  mon:
+    mon_allow_pool_delete: true

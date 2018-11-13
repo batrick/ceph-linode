@@ -1,0 +1,17 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: stop ceph-gather if running
+      systemd:
+        state: stopped
+        name: ceph-gather
+
+    - name: find db
+      find:
+        paths: /root/
+        pattern: 'stats.db'
+      register: stats_find
+
+    - name: gzip db
+      shell: gzip "{{ item.path }}"
+      with_items: "{{ stats_find.files }}"

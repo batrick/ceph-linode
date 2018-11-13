@@ -1,0 +1,16 @@
+---
+
+- hosts: mdss
+  become: yes
+  tasks:
+  - name: flush MDS journals
+    shell: ceph --admin-daemon /var/run/ceph/ceph-mds.*asok flush journal
+
+- hosts: mdss osds
+  become: yes
+  tasks:
+  - name: restart ceph service to drop cache
+    systemd:
+      daemon_reload: true # resets any burst timers
+      name: ceph.target
+      state: restarted

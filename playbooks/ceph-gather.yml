@@ -1,0 +1,24 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: stop ceph-gather if running
+      systemd:
+        state: stopped
+        name: ceph-gather
+
+    - name: remove old databases
+      find:
+        path: /root/
+        pattern: 'stats.db*'
+      register: db_find
+
+    - name: remove old databases
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ db_find.files }}"
+
+    - name: start ceph-gather
+      systemd:
+        state: started
+        name: ceph-gather

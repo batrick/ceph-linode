@@ -1,0 +1,53 @@
+---
+
+- import_playbook: kernel-umount.yml
+
+- hosts: mon-000
+  become: yes
+  vars:
+    target_pgs_per_osd: 128
+    replicas: 3
+    dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3 osd.4 osd.5
+  tasks:
+  - name: set all file systems down
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
+
+  - name: fail all ranks
+    shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
+
+  - name: destroy all file systems
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
+
+  # This config set doesn't work for some reason; use group_vars instead I guess
+  - name: allow pool deletion
+    shell: ceph tell mon.* config set mon_allow_pool_delete 1
+
+  - name: destroy all pools
+    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
+
+  - name: get hdd-meta count
+    shell: ceph -f json osd crush dump | jq '.devices | map(select(.class == "hdd-meta")) | length'
+    register: meta_osd
+
+  - name: get hdd count
+    shell: ceph -f json osd crush dump | jq '.devices | map(select(.class == "hdd")) | length'
+    register: data_osd
+
+  - name: set pg lg
+    set_fact:
+      metadata_pool_pgs_lg: "{{ ( ((meta_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
+      data_pool_pgs_lg: "{{ ( ( (data_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
+
+  - name: set pg count
+    set_fact:
+      metadata_pool_pgs: "{{ 2 | pow(metadata_pool_pgs_lg|int) | int}}"
+      data_pool_pgs: "{{ 2 | pow(data_pool_pgs_lg|int) | int }}"
+
+  - name: create fs metadata pool
+    shell: "ceph osd pool create cephfs_metadata {{ metadata_pool_pgs }} {{ metadata_pool_pgs }} replicated class-hdd-meta {{ replicas }}"
+
+  - name: create fs data pool
+    shell: "ceph osd pool create cephfs_data {{ data_pool_pgs }} {{ data_pool_pgs }} replicated class-hdd {{ replicas }}"
+
+  - name: create fs
+    shell: "ceph fs new cephfs cephfs_metadata cephfs_data"

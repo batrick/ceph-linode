@@ -9,7 +9,7 @@ source "$(dirname "$0")/ansible-env.bash"
 
 CEPH_ANSIBLE=~/ceph-ansible/
 NUKE=0
-LOG=OUTPUT
+LOG=launch.log
 YML="$(dirname "$0")/linode.yml"
 RETRY="${YML%.*}.retry"
 
