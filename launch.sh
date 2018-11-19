@@ -31,8 +31,11 @@ function main {
         ans --module-name=shell --args='wipefs -a /dev/sdc' osds
     fi
 
+    if [ ! -d $CEPH_ANSIBLE/roles ] ; then
+        echo "skipping ceph-ansible run"
+
     # Sometimes we hit transient errors, so retry until it works!
-    if ! do_playbook --limit=all "$YML"; then
+    elif ! do_playbook --limit=all "$YML"; then
         # Always include the mons because we need their statistics to generate ceph.conf
         printf 'mons\nmgrs\n' >> "$RETRY"
         do_playbook --limit=@"${RETRY}" "$YML"
@@ -86,7 +89,6 @@ set -x
 
 if ! [ -d "$CEPH_ANSIBLE"/roles ]; then
     printf "Cannot find ceph-ansible environment, please specify the path to ceph-ansible. (current: %s)\n" "$CEPH_ANSIBLE"
-    exit 1
 fi
 
 cat > ansible.cfg <<EOF
