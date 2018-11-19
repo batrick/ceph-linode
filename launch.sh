@@ -19,6 +19,7 @@ function main {
     fi
     if [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
         time python2 "$(dirname "$0")/linode-launch.py"
+        ansible -m shell -a "systemctl stop firewalld; systemctl disable firewalld" all
     fi
     # wait for Linodes to finish booting
     time python2 "$(dirname "$0")/linode-wait.py"
