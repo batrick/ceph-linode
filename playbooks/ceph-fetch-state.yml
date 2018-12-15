@@ -9,10 +9,24 @@
       patterns: '*.log*gz'
     register: log_paths
 
+  - name: create backup dirs
+    delegate_to: localhost
+    file:
+      path: "{{ instance }}/{{ inventory_hostname }}/{{ item }}"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+      recurse: yes
+    with_items:
+    - log
+    - crash
+
   - name: fetch logs
-    fetch:
+    synchronize:
+      dest: "{{ instance }}/{{ inventory_hostname }}/log/"
+      mode: pull
       src: "{{ item.path }}"
-      dest: "{{ instance }}/"
     with_items: "{{ log_paths.files }}"
 
   - name: find cores
@@ -32,9 +46,10 @@
     register: core_paths
 
   - name: fetch cores
-    fetch:
+    synchronize:
+      dest: "{{ instance }}/{{ inventory_hostname }}/crash/"
+      mode: pull
       src: "{{ item.path }}"
-      dest: "{{ instance }}/"
     with_items: "{{ core_paths.files }}"
 
   - name: get stats db file names
@@ -44,9 +59,10 @@
     register: stats_paths
 
   - name: fetch stats db
-    fetch:
+    synchronize:
+      dest: "{{ instance }}/{{ inventory_hostname }}/"
+      mode: pull
       src: "{{ item.path }}"
-      dest: "{{ instance }}/"
     with_items: "{{ stats_paths.files }}"
 
   - name: get state file names
@@ -56,7 +72,8 @@
     register: state_paths
 
   - name: fetch state
-    fetch:
+    synchronize:
+      dest: "{{ instance }}/{{ inventory_hostname }}/"
+      mode: pull
       src: "{{ item.path }}"
-      dest: "{{ instance }}/"
     with_items: "{{ state_paths.files }}"
