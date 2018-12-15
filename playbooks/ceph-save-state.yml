@@ -36,6 +36,12 @@
 - hosts: all
   become: yes
   tasks:
+  - name: save dmesg
+    shell: dmesg > dmesg-$(date '+%Y-%m-%d-%H-%M').txt
+
+  - name: save journal dump
+    shell: journalctl -b > journalctl-$(date '+%Y-%m-%d-%H-%M').txt
+
   - name: forcibly rotate logs
     shell: logrotate -f /etc/logrotate.d/ceph
     retries: 3
@@ -43,66 +49,4 @@
     register: result
     until: result.rc == 0 # handle transient failures
 
-  - name: get logs file names
-    find:
-      paths: /var/log/ceph/
-      patterns: '*.log*gz'
-    register: log_paths
-
-  - name: fetch logs
-    fetch:
-      src: "{{ item.path }}"
-      dest: "{{ instance }}/"
-    with_items: "{{ log_paths.files }}"
-
-  - name: find cores
-    find:
-      paths: /crash/
-      patterns: '*'
-    register: core_paths
-
-  - name: gzip cores
-    shell: gzip /crash/*
-    when: core_paths.matched > 0
-
-  - name: get core file names
-    find:
-      paths: /crash/
-      patterns: '*.core.gz'
-    register: core_paths
-
-  - name: fetch cores
-    fetch:
-      src: "{{ item.path }}"
-      dest: "{{ instance }}/"
-    with_items: "{{ core_paths.files }}"
-
-  - name: get stats db file names
-    find:
-      paths: /root/
-      patterns: 'stats.db*'
-    register: stats_paths
-
-  - name: fetch stats db
-    fetch:
-      src: "{{ item.path }}"
-      dest: "{{ instance }}/"
-    with_items: "{{ stats_paths.files }}"
-
-  - name: save dmesg
-    shell: dmesg > dmesg-$(date '+%Y-%m-%d-%H-%M').txt
-
-  - name: save journal dump
-    shell: journalctl -b > journalctl-$(date '+%Y-%m-%d-%H-%M').txt
-
-  - name: get state file names
-    find:
-      paths: /root/
-      patterns: '*.txt'
-    register: state_paths
-
-  - name: fetch state
-    fetch:
-      src: "{{ item.path }}"
-      dest: "{{ instance }}/"
-    with_items: "{{ state_paths.files }}"
+- import_playbook: ceph-fetch-state.yml
