@@ -97,19 +97,13 @@
 
   - name: install dependencies
     yum:
-      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml
+      name: git,autoconf,automake,bc,gdb
       state: present
 
   - name: install Development tools
     yum:
       name: "@Development tools"
       state: present
-
-  - name: clone smallfile
-    git:
-      repo: https://github.com/bengland2/smallfile
-      dest: /root/smallfile
-      update: no
 
   - name: check for ssh key
     find:

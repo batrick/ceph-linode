@@ -2,17 +2,17 @@
 
 set -e
 
-# client-000 is used to run smallfile master
+# client-000 is used to run fs-drift master
 #clients=$(< linodes jq --raw-output 'map(select(.name | startswith("client"))) | map(select(.name != "client-000")) | map(.name) | join(",")')
 MAX_MDS=$(< linodes jq --raw-output 'map(select(.name | startswith("mds"))) | length')
 MAX_MDS=$((MAX_MDS-1)) # leave one for standby
+MAX_MDS=1
 NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.name | startswith("client"))) | map(select(.name != "client-000")) | length')
 
-common_params="--same-dir N --response-times y --threads 16 --pause 2000 --files 1000 --hash-into-dirs Y --dirs-per-dir 3 --files-per-dir 1000 --file-size 4"
-oplist="create overwrite append read symlink stat mkdir rmdir chmod setxattr getxattr ls-l rename delete-renamed"
+common_params="--max-files 1000000 --threads 1 --dirs-per-level 50 --duration 60"
 
-if [ -r smf.sh ]; then
-  source smf.sh
+if [ -r fs-drift.sh ]; then
+  source fs-drift.sh
 fi
 
 ###
@@ -49,45 +49,42 @@ function nclients {
   done
 }
 
-function smallfile {
+function fsdrift {
   clients="$1"
   shift
-  run ssh client-000 "smallfile/smallfile_cli.py --top /cephfs/ --host-set $clients --output-json /root/smf.json $common_params $*"
+  run ssh client-000 "mkdir -p /cephfs/fs-drift && fs-drift/fs-drift.py --top /cephfs/fs-drift --host-set $clients --output-json /root/fs-drift.json $common_params $*"
 }
 
 function save {
-  run ssh client-000 "cd /cephfs/network_shared/ && tar czf rsptimes.tar.gz rsptimes*csv"
-  run scp client-000:/cephfs/network_shared/rsptimes.tar.gz "$1/smf/"
-  run scp client-000:/root/smf.json "$1/smf/"
+  #run ssh client-000 "cd /cephfs/network_shared/ && tar czf rsptimes.tar.gz rsptimes*csv"
+  #run scp client-000:/cephfs/network_shared/rsptimes.tar.gz "$1/fs-drift/"
+  run scp client-000:/root/fs-drift.json "$1/fs-drift/"
 }
 
-function do_smallfile {
+function do_fsdrift {
   exp="$1"
   i="$2"
   max_mds="$3"
   num_clients="$4"
-  for op in $oplist; do
-    instance="$(printf 'max_mds:%02d/num_clients:%02d/i:%02d/%s' "$max_mds" "$num_clients" "$i" "$op")"
-    dir="${exp}/results/${instance}"
-    run mkdir -p "$dir/smf"
-    printf '%d\n' "$i" > "$dir"/i
-    printf '%d\n' "$max_mds" > "$dir"/max_mds
-    printf '%d\n' "$num_clients" > "$dir"/num_clients
-    printf '%s\n' "$instance" > "$dir"/instance
-    printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
-    run do_playbook playbooks/cephfs-pre-test.yml
 
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/smf/pre-df
-    date +%s > "$dir"/smf/start
-    run smallfile "$(nclients "$num_clients")" --operation "$op" |& tee "$dir"/smf/log
-    date +%s > "$dir"/smf/end
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/smf/post-df
+  instance="$(printf 'max_mds:%02d/num_clients:%02d/i:%02d/%s' "$max_mds" "$num_clients" "$i")"
+  dir="${exp}/results/${instance}"
+  run mkdir -p "$dir/fs-drift"
+  printf '%d\n' "$i" > "$dir"/i
+  printf '%d\n' "$max_mds" > "$dir"/max_mds
+  printf '%d\n' "$num_clients" > "$dir"/num_clients
+  printf '%s\n' "$instance" > "$dir"/instance
+  printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
+  run do_playbook playbooks/cephfs-pre-test.yml
 
-    run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
-    run save "$dir"
-  done
+  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/fs-drift/pre-df
+  date +%s > "$dir"/fs-drift/start
+  run fsdrift "$(nclients "$num_clients")" |& tee "$dir"/fs-drift/log
+  date +%s > "$dir"/fs-drift/end
+  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/fs-drift/post-df
 
-  run smallfile "$clients" --operation cleanup
+  run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
+  run save "$dir"
 }
 
 function main {
@@ -98,17 +95,13 @@ function main {
 
   {
     run do_playbook playbooks/cephfs-setup.yml
-    run do_playbook playbooks/cephfs-setup-smallfile.yml
+    run do_playbook playbooks/cephfs-setup-fs-drift.yml
     for ((max_mds = 1; max_mds <= MAX_MDS; ++max_mds)); do
-      for ((num_clients = 1; num_clients < NUM_CLIENTS; num_clients*=2)); do
-        if [[ $max_mds == 1 && $num_clients > 4 ]]; then
-          break
-        fi
-        for ((i = 0; i < 2; i++)); do
-          run do_playbook playbooks/cephfs-reset.yml
-          ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
-          run do_smallfile "$exp" "$i" "$max_mds" "$num_clients" || true
-        done
+      num_clients="$NUM_CLIENTS"
+      for ((i = 0; i < 2; i++)); do
+        run do_playbook playbooks/cephfs-reset.yml
+        ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
+        run do_fsdrift "$exp" "$i" "$max_mds" "$num_clients" || true
       done
     done
   } |& tee "${exp}/experiment.log"

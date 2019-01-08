@@ -35,8 +35,8 @@
 
   - name: set pg lg
     set_fact:
-      metadata_pool_pgs_lg: "{{ ( ((meta_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
-      data_pool_pgs_lg: "{{ ( ( (data_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
+      metadata_pool_pgs_lg: "{{ ( ((meta_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') )  }}"
+      data_pool_pgs_lg: "{{ ( ( (data_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') )  }}"
 
   - name: set pg count
     set_fact:

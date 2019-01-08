@@ -1,0 +1,33 @@
+---
+
+- hosts: clients
+  become: yes
+  tasks:
+  # Use mode=0000/attributes=i to prevent tests blindly running on local file system.
+  - name: set mnt dir
+    file:
+      attributes: i
+      path: /cephfs/
+      state: directory
+      owner: root
+      group: root
+      mode: 0000
+
+  - name: install dependencies
+    yum:
+      name: numpy,jq,python2-pyyaml
+      state: present
+
+  - name: clone fs-drift
+    git:
+      repo: https://github.com/parallel-fs-utils/fs-drift.git
+      dest: /root/fs-drift
+      update: no
+
+  - name: link fs-drift exe
+    file:
+      state: link
+      dest: /usr/local/bin/fs-drift-remote.py
+      src: /root/fs-drift/fs-drift-remote.py
+      owner: root
+      group: root
