@@ -12,7 +12,7 @@ import linode.api as linapi
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 with open("LINODE_GROUP") as f:
-    GROUP = unicode(f.read())
+    GROUP = unicode(f.read().strip())
 
 def main():
     key = os.getenv("LINODE_API_KEY")

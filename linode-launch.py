@@ -13,7 +13,7 @@ import linode.api as linapi
 
 try:
     with open("LINODE_GROUP") as f:
-        GROUP = unicode(f.read())
+        GROUP = unicode(f.read().strip())
 except IOError as e:
     GROUP = unicode("ceph-"+binascii.b2a_hex(os.urandom(3)))
     with open("LINODE_GROUP", "w") as f:

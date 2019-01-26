@@ -8,7 +8,7 @@ import linode.api as linapi
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 with open("LINODE_GROUP") as f:
-    GROUP = unicode(f.read())
+    GROUP = unicode(f.read().strip())
 
 def info(key):
     client = linapi.Api(key = key, batching = False)

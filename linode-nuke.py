@@ -9,7 +9,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 with open("LINODE_GROUP") as f:
-    GROUP = unicode(f.read())
+    GROUP = unicode(f.read().strip())
 
 def nuke(client, linode):
     changed = False
