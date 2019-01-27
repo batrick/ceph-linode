@@ -17,22 +17,32 @@
       name: kernel.core_pattern
       value: /crash/%e-%h-%p-%t.core
 
-  - name: raise coredump limit for systemd services
-    shell: echo DefaultLimitCORE=infinity | tee -a /etc/systemd/system.conf; systemctl daemon-reexec;
+  - name: add DefaultLimitCORE=infinity
+    lineinfile:
+      path: /etc/systemd/system.conf
+      line: DefaultLimitCORE=infinity
+    register: coreline
+
+  - name: reexec systemd
+    shell: systemctl daemon-reexec
+    when: coreline.changed
 
   # package setup
   # - logrotate needs psmisc for killall
   # - ceph-ansible needs EPEL but also needs ca-certificates installed to avoid some errors, do this now
   - name: install launcher packages
     yum: name=logrotate,psmisc,epel-release,ca-certificates,wget,ntp state=latest update_cache=yes
+
   - name: update packages
     shell: yum --disablerepo=epel -y update
 
   # log rotation setup
   - name: copy ceph-logrotate.timer
     copy: src=ceph-log-rotate.timer dest=/etc/systemd/system/ owner=root group=root mode=644
+
   - name: copy ceph-logrotate.service
     copy: src=ceph-log-rotate.service dest=/etc/systemd/system/ owner=root group=root mode=644
+
   - name: copy ceph logrotate config
     copy: src=ceph.logrotate dest=/etc/logrotate.d/ceph owner=root group=root mode=644
 
@@ -42,7 +52,7 @@
   - name: register crontab
     shell: crontab crontab
 
-  - name:  start ntpd
+  - name: start ntpd
     systemd:
       enabled: yes
       name: ntpd
