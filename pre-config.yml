@@ -42,6 +42,12 @@
   - name: register crontab
     shell: crontab crontab
 
+  - name:  start ntpd
+    systemd:
+      enabled: yes
+      name: ntpd
+      state: started
+
 - hosts: mdss
   become: yes
   tasks:
