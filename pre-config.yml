@@ -52,10 +52,10 @@
   - name: register crontab
     shell: crontab crontab
 
-  - name: start ntpd
+  - name: start and enable systemd-timedated
     systemd:
       enabled: yes
-      name: ntpd
+      name: systemd-timedated
       state: started
 
 - hosts: mdss
