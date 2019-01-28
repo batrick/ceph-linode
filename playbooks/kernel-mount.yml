@@ -1,5 +1,27 @@
 - hosts: clients
   become: yes
   tasks:
+    - name: umount kcephfs
+      mount:
+        opts: -f -l
+        state: unmounted
+        path: /cephfs
+
+    - name: set mon_addrs fact
+      set_fact:
+        mon_addrs: "{{ groups['mons'] | map('extract', hostvars, ['ansible_ssh_host']) | join(',') }}"
+
+    - name: get client key secret
+      shell: ceph auth print-key client.cephfs
+      delegate_to: "{{ groups['mons'][0] }}"
+      register: key
+      run_once: true
+
     - name: mount kcephfs
-      shell: umount -f /cephfs; mount -t ceph $(grep 'mon host' /etc/ceph/ceph.conf | tr -d '[[:space:][:alpha:]=]'):/ /cephfs -o secret=$(grep key /etc/ceph/ceph.client.admin.keyring | awk '{print $3}'),name=admin,norequire_active_mds
+      mount:
+        boot: no
+        fstype: ceph
+        opts: "secret={{ key.stdout }},name=cephfs,norequire_active_mds"
+        path: /cephfs
+        src: "{{ mon_addrs }}:/"
+        state: mounted

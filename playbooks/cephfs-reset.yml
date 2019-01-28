@@ -18,6 +18,9 @@
   - name: destroy all file systems
     shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
 
+  - name: delete client.cephfs credential
+    shell: "ceph auth del client.cephfs"
+
   # This config set doesn't work for some reason; use group_vars instead I guess
   - name: allow pool deletion
     shell: ceph tell mon.* config set mon_allow_pool_delete 1
@@ -51,3 +54,6 @@
 
   - name: create fs
     shell: "ceph fs new cephfs cephfs_metadata cephfs_data"
+
+  - name: create client credential
+    shell: "ceph fs authorize cephfs client.cephfs / rwp"
