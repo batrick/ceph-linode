@@ -23,7 +23,7 @@
 
   # This config set doesn't work for some reason; use group_vars instead I guess
   - name: allow pool deletion
-    shell: ceph tell mon.* config set mon_allow_pool_delete 1
+    shell: ceph tell mon.* config set mon_allow_pool_delete 1 || ceph config set mon.* mon_allow_pool_delete true
 
   - name: destroy all pools
     shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
