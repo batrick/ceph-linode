@@ -97,7 +97,7 @@
 
   - name: install dependencies
     yum:
-      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml
+      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml,attr
       state: present
 
   - name: install Development tools
