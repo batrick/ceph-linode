@@ -1,0 +1,39 @@
+{
+  "datacenter": "Fremont",
+  "distribution": "CentOS 7",
+  "kernel": 210,
+  "nodes": [
+      {
+        "count": 1,
+        "prefix": "master",
+        "plan": "16GB",
+        "root_size": 24576,
+        "var_size": 65536,
+        "group": "masters"
+      },
+      {
+        "count": 1,
+        "prefix": "etcd",
+        "plan": "16GB",
+        "root_size": 24576,
+        "var_size": 65536,
+        "group": "etcd"
+      },
+      {
+        "count": 2,
+        "prefix": "infra",
+        "plan": "16GB",
+        "root_size": 24576,
+        "var_size": 65536,
+        "group": "nodes"
+      },
+      {
+        "count": 3,
+        "prefix": "compute",
+        "plan": "16GB",
+        "root_size": 24576,
+        "var_size": 65536,
+        "group": "nodes"
+      }
+  ]
+}

@@ -1,0 +1,38 @@
+- hosts: master-000
+  become: yes
+  tasks:
+  - name: get packages
+    yum:
+      name: ca-certificates,git
+      state: latest
+      update_cache: yes
+
+  - name: git rook
+    git:
+      repo: https://github.com/rook/rook.git
+      dest: /root/rook
+      update: no
+
+  - name: copy scc operator config
+    copy:
+      src: rook/scc.yaml
+      dest: /root/scc.yaml
+
+  - name: install scc operator config
+    shell: oc create -f /root/scc.yaml
+
+  - name: copy operator yaml
+    copy:
+      src: rook/operator.yaml
+      dest: /root/operator.yaml
+
+  - name: install operator
+    shell: oc create -f /root/operator.yaml
+
+  - name: copy cluster yaml
+    copy:
+      src: rook/cluster.yaml
+      dest: /root/cluster.yaml
+
+  - name: install cluster
+    shell: oc create -f /root/cluster.yaml

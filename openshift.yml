@@ -1,0 +1,9 @@
+---
+
+- include: "{{ lookup('env','OPENSHIFT_ANSIBLE') }}/playbooks/prerequisites.yml"
+
+- include: "{{ lookup('env','OPENSHIFT_ANSIBLE') }}/playbooks/deploy_cluster.yml"
+
+# oc label node li824-139.members.linode.com node-role.kubernetes.io/compute=true
+
+- include: "rook.yml"

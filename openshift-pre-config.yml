@@ -1,0 +1,62 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: system updates
+    shell: yum update -y
+
+  - name: install rsync
+    yum:
+      name: rsync
+      state: latest
+
+  - name: create crash directory
+    file:
+      path: /crash
+      state: directory
+      owner: root
+      group: root
+      mode: 1777
+
+  - name: set core_pattern
+    sysctl:
+      name: kernel.core_pattern
+      value: /crash/%e-%h-%p-%t.core
+
+  - name: add DefaultLimitCORE=infinity
+    lineinfile:
+      path: /etc/systemd/system.conf
+      line: DefaultLimitCORE=infinity
+    register: coreline
+
+  - name: reexec systemd
+    shell: systemctl daemon-reexec
+    when: coreline.changed
+
+  - name: create var-lib-docker mountpoint
+    file:
+      attributes: i
+      path: /var/lib/docker
+      state: directory
+      owner: root
+      group: root
+      mode: 0000
+
+  - name: partition var-lib-docker device
+    parted:
+      device: /dev/sdc
+      number: 1
+      state: present
+
+  - name: mkfs.xfs on var-lib-docker partition
+    filesystem:
+      fstype: xfs
+      dev: /dev/sdc1
+
+  - name: mount var-lib-docker
+    mount:
+      fstype: xfs
+      path: /var/lib/docker
+      src: /dev/sdc1
+      state: mounted

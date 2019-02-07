@@ -80,9 +80,10 @@ def do_create(client, running, datacenter, plans, distribution, kernel, machine,
         configs = client.linode_config_list(LinodeID = node[u'LinodeID'])
         try:
             swap_size = int(machine['swap_size'] if machine.get('swap_size') is not None else 128)
-            root_size = int(machine['root_size'] if machine.get('root_size') is not None else int(plan['DISK'])*1024 - swap_size)
-            if root_size + swap_size < int(plan['DISK'])*1024:
-                raw_size = int(plan['DISK'])*1024 - (root_size+swap_size)
+            var_size = int(machine['var_size'] if machine.get('var_size') is not None else 0)
+            root_size = int(machine['root_size'] if machine.get('root_size') is not None else int(plan['DISK'])*1024 - swap_size - var_size)
+            if root_size + swap_size + var_size < int(plan['DISK'])*1024:
+                raw_size = int(plan['DISK'])*1024 - (root_size+swap_size+var_size)
             else:
                 raw_size = 0
             disks = []
@@ -101,6 +102,14 @@ def do_create(client, running, datacenter, plans, distribution, kernel, machine,
                 disks.append({u'DiskID': swap[u'DISKID']})
             else:
                 disks.append(client.linode_disk_create(LinodeID = node[u'LinodeID'], Label = u'swap', Type = u'swap', Size = swap_size))
+            var = filter(lambda d: d[u'LABEL'] == u'var', current_disks)
+            if var:
+                var = var[0]
+                assert(var[u'SIZE'] == int(var_size))
+                assert(var[u'TYPE'] == u'raw')
+                disks.append({u'DiskID': var[u'DISKID']})
+            elif var_size > 0:
+                disks.append(client.linode_disk_create(LinodeID = node[u'LinodeID'], Label = u'var', Type = u'raw', Size = var_size))
             raw = filter(lambda d: d[u'LABEL'] == u'raw', current_disks)
             if raw:
                 raw = raw[0]
@@ -167,7 +176,7 @@ def launch(client):
         for group in groups:
             f.write("[{}]\n".format(group))
             for linode in linodes:
-                if linode['group'] == group:
+                if group == 'nodes' or linode['group'] == group:
                     if socket.gethostname().endswith('.linode.com'):
                         # assumes deployment node is at same site as ceph cluster
                         ip_key = 'ip_private'
@@ -176,7 +185,37 @@ def launch(client):
                     f.write("\t{} ansible_ssh_host={} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{}'".format(linode['name'], linode[ip_key], SSH_PRIVATE_KEY_FILE))
                     if 'mon' in linode['name']:
                         f.write(" monitor_address={}".format(linode[ip_key]))
+                    if group == 'nodes':
+                        # https://docs.openshift.com/container-platform/3.11/install/configuring_inventory_file.html#configuring-inventory-node-group-definitions
+                        if 'master' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-master-ceph'")
+                        elif 'etcd' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-infra-ceph'")
+                        elif 'compute' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-compute-ceph'")
+                        elif 'lb' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-infra-ceph'")
+                        elif 'nfs' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-infra-ceph'")
+                        elif 'infra' in linode['name']:
+                            f.write(" openshift_node_group_name='node-config-infra-ceph'")
+                        else:
+                            f.write(" openshift_node_group_name='node-config-compute-ceph'")
+                        #f.write(" openshift_node_labels=\"{'storage': 'true'}\"")
                     f.write("\n")
+        addendum = """
+[OSEv3:children]
+masters
+nodes
+etcd
+
+[OSEv3:vars]
+openshift_deployment_type=origin
+openshift_release='3.11'
+
+openshift_node_groups=[{'name': 'node-config-master-ceph', 'labels': ['node-role.kubernetes.io/master=true', 'node-role.ceph.io/storage=true'], 'edits': []}, {'name': 'node-config-infra-ceph', 'labels': ['node-role.kubernetes.io/infra=true', 'node-role.ceph.io/storage=true'], 'edits': []}, {'name': 'node-config-compute-ceph', 'labels': ['node-role.kubernetes.io/compute=true', 'node-role.ceph.io/storage=true'], 'edits': []}, {'name': 'node-config-master-infra-ceph', 'labels': ['node-role.kubernetes.io/master=true', 'node-role.kubernetes.io/infra=true', 'node-role.ceph.io/storage=true'], 'edits': []}]
+"""
+        f.write(addendum)
 
     with open("linodes", mode = 'w') as f:
         f.write(json.dumps(linodes))
