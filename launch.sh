@@ -15,7 +15,7 @@ RETRY="${YML%.*}.retry"
 
 function main {
     if [ "$NUKE" -gt 0 ]; then
-        time python2 "$(dirname "$0")/linode-nuke.py"
+        time python2 "$(dirname "$0")/linode-destroy.py"
     fi
     if [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
         time python2 "$(dirname "$0")/linode-launch.py"

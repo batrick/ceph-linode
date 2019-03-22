@@ -1,4 +1,4 @@
-import linode.api as linapi
+from linode_api4 import LinodeClient
 import logging
 import os
 import time
@@ -52,18 +52,18 @@ def main():
     if key is None:
         raise RuntimeError("please specify Linode API key")
 
-    client = linapi.Api(key = key, batching = False)
+    client = LinodeClient(key)
 
     while True:
         # FIXME only nuke linodes which aren't done, and do one last check at the end
-        linodes = client.linode_list()
+        linodes = client.linode.instances()
         logging.info("%s", linodes)
 
         with closing(ThreadPool(25)) as pool:
             status, cb = newcb()
 
             for linode in linodes:
-                if linode[u'LPM_DISPLAYGROUP'] == GROUP:
+                if linode.group == GROUP:
                     pool.apply_async(nuke, (client, linode), {}, cb)
             pool.close()
             pool.join()

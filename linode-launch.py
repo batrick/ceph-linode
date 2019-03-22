@@ -4,12 +4,13 @@ import logging
 import os
 import sys
 import socket
+import time
 
 from contextlib import closing, contextmanager
 from multiprocessing.dummy import Pool as ThreadPool
 from threading import BoundedSemaphore
 
-import linode.api as linapi
+from linode_api4 import LinodeClient
 
 try:
     with open("LINODE_GROUP") as f:
@@ -27,7 +28,7 @@ def releasing(semaphore):
     finally:
         semaphore.release()
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 SSH_PRIVATE_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa"
 SSH_PUBLIC_KEY_FILE = os.getenv("HOME") + "/.ssh/id_rsa.pub"
@@ -48,85 +49,136 @@ linodes = []
 create_semaphore = BoundedSemaphore(15)
 config_semaphore = BoundedSemaphore(8)
 def do_create(client, running, datacenter, plans, distribution, kernel, machine, i):
-    plan = filter(lambda p: p[u'LABEL'].lower().find(str(machine['plan']).lower()) >= 0, plans)[0]
+    
+    for p in plans:
+        str_plan_label = p.label
+        str_reduced_plan_label = str_plan_label.split(" ")[1]
+        if str(machine['plan']).lower() == str_reduced_plan_label.lower():
+            plan = p
+            logging.info("plan: %s" % plan)
+            
     name =  u'{0}-{1:03d}'.format(machine['prefix'], i)
     label =  u'{0}-{1}'.format(GROUP, name)
     logging.info("%s", "creating {}".format(label))
 
-    active = filter(lambda x: x[u'LABEL'] == label and x[u'LPM_DISPLAYGROUP'] == GROUP, running)
-    assert(len(active) <= 1)
+    active = ""
+    for node in running:
+        str_label = node.label
+        str_group = GROUP
+        if str_label == label and str_group == GROUP:
+            active = node
+            logging.info("active: %s" % active)
+
     if active:
-        logging.info("%s", "linode {} already exists: {}".format(label, active[0][u'LINODEID']))
-        node = {u'LinodeID': active[0][u'LINODEID']}
+        logging.info("%s", "linode {} already exists: {}".format(label, active.id))
+        node = client.load(active, active.id)
     else:
         with releasing(create_semaphore):
-            node = client.linode_create(DatacenterID = datacenter, PlanID = plan[u'PLANID'], PaymentTerm = 1)
-            client.linode_update(LinodeID = node[u'LinodeID'], Label = label, lpm_displayGroup = GROUP, watchdog = 1, Alert_cpu_enabled = 0)
-            logging.info("created %s: %s", label, node[u'LinodeID'])
+            node = client.linode.instance_create(ltype = plan.id, 
+                                               region = datacenter,
+                                               label = label,
+                                               group = GROUP,
+                                               tags = [GROUP])
+            
+            logging.info("created %s: %s", label, node.id)
 
     with releasing(config_semaphore):
         try:
-            client.linode_ip_addprivate(LinodeID = node[u'LinodeID'])
-        except linapi.ApiError as err:
-            err = err.value[0]
-            if err[u'ERRORCODE'] != 8:
+            node.ip_allocate(False)
+            status_check(node, "offline")
+        except Exception as err:
+            if err.status == 400:
+                logging.error(err)
+            elif err.status != 8:
                 logging.error(err)
                 raise
-        ips = client.linode_ip_list(LinodeID = node[u'LinodeID'])
-        ip_private = filter(lambda ip: not ip[u'ISPUBLIC'], ips)[0][u'IPADDRESS']
-        ip_public = filter(lambda ip: ip[u'ISPUBLIC'], ips)[0][u'IPADDRESS']
+        ip_private = node.ipv4[1]
+        ip_public = node.ipv4[0]
 
-        current_disks = client.linode_disk_list(LinodeID = node[u'LinodeID'])
-        configs = client.linode_config_list(LinodeID = node[u'LinodeID'])
+        current_disks = node.disks
+        configs = node.configs
         try:
             swap_size = int(machine['swap_size'] if machine.get('swap_size') is not None else 128)
-            root_size = int(machine['root_size'] if machine.get('root_size') is not None else int(plan['DISK'])*1024 - swap_size)
-            if root_size + swap_size < int(plan['DISK'])*1024:
-                raw_size = int(plan['DISK'])*1024 - (root_size+swap_size)
+            root_size = int(machine['root_size'] if machine.get('root_size') is not None else int(plan.disk) - swap_size)
+            if root_size + swap_size < int(plan.disk):
+                raw_size = int(plan.disk) - (root_size+swap_size)
             else:
                 raw_size = 0
             disks = []
-            root = filter(lambda d: d[u'LABEL'] == u'root', current_disks)
-            if root:
-                root = root[0]
-                assert(root[u'SIZE'] == int(root_size))
-                disks.append({u'DiskID': root[u'DISKID']})
+            
+            root = ""
+            swap = ""
+            raw = ""
+            for disk in current_disks:
+                dlabel = disk.label
+                if dlabel == "root":
+                    root = disk
+                if dlabel == 'swap':
+                    swap = disk
+                if dlabel == 'raw':
+                    raw = disk
+            if root: 
+                assert(root.size == int(root_size))
+                disks.append(root)
             else:
-                disks.append(client.linode_disk_createfromdistribution(LinodeID = node[u'LinodeID'], Label = u'root', DistributionID = distribution, rootPass = binascii.b2a_hex(os.urandom(20)), Size = root_size, rootSSHKey = SSH_KEY))
-            swap = filter(lambda d: d[u'LABEL'] == u'swap', current_disks)
+                root_disk = node.disk_create(label = u'root', 
+                                              image = distribution,
+                                              filesystem = u'ext4',
+                                              rootPass = binascii.b2a_hex(os.urandom(20)), 
+                                              size = root_size, 
+                                              authorized_keys=SSH_PUBLIC_KEY_FILE)
+                disk_status_check(node, root_disk[0], "ready")
+                disks.append(root_disk[0])
+                
             if swap:
-                swap = swap[0]
-                assert(swap[u'SIZE'] == int(swap_size))
-                assert(swap[u'TYPE'] == u'swap')
-                disks.append({u'DiskID': swap[u'DISKID']})
+                assert(swap.size == int(swap_size))
+                assert(swap.filesystem == u'swap')
+                disks.append(swap)
             else:
-                disks.append(client.linode_disk_create(LinodeID = node[u'LinodeID'], Label = u'swap', Type = u'swap', Size = swap_size))
-            raw = filter(lambda d: d[u'LABEL'] == u'raw', current_disks)
+                swap_disk = node.disk_create(label = u'swap', 
+                                              filesystem = u'swap', 
+                                              size = swap_size)
+                disk_status_check(node, swap_disk, "ready")
+                disks.append(swap_disk)
+
             if raw:
-                raw = raw[0]
-                assert(raw[u'SIZE'] == int(raw_size))
-                assert(raw[u'TYPE'] == u'raw')
-                disks.append({u'DiskID': raw[u'DISKID']})
+                assert(raw.size == int(raw_size))
+                assert(raw.filesystem == u'raw')
+                disks.append(raw)
             elif raw_size > 0:
-                disks.append(client.linode_disk_create(LinodeID = node[u'LinodeID'], Label = u'raw', Type = u'raw', Size = raw_size))
-            disks = [unicode(d[u'DiskID']) for d in disks]
-            disklist = u','.join(disks)
+                raw_disk = node.disk_create(label = u'raw', 
+                                              filesystem = u'raw', 
+                                              size = raw_size)
+                disk_status_check(node, raw_disk, "ready")
+                disks.append(raw_disk)
+                
+            disklist = disks
             logging.info("%s", "{} disks: {}".format(label, disks))
-            ceph_config = filter(lambda c: c[u'Label'] == u'ceph', configs)
+            ceph_config = filter(lambda c: c.label == u'ceph', configs)
             if ceph_config:
                 logging.info("%s", "{} ceph config already setup".format(label))
                 config = ceph_config[0]
             else:
-                config = client.linode_config_create(LinodeID = node[u'LinodeID'], Label = u'ceph', KernelID = kernel, Disklist = disklist, RootDeviceNum = 1)
-        except linapi.ApiError as err:
+                config = node.config_create(label = u'ceph', 
+                                            kernal = kernel, 
+                                            disks = disklist, 
+                                            root_device = '/dev/sda')
+        except Exception as err:
             raise
 
-        if active and active[0][u'STATUS'] == 1:
+        if active and active.status == "running":
             logging.info("%s", "Linode {} already running.".format(label))
         else:
-            client.linode_boot(LinodeID = node[u'LinodeID'], ConfigID = config[u'ConfigID'])
-            logging.info("%s", "booted {}: {}".format(label, node[u'LinodeID']))
-        linodes.append({"id": node[u'LinodeID'], "name": name, "label": label, "ip_private": ip_private, "ip_public": ip_public, "group": machine['group'], "user": "root", "key": SSH_PRIVATE_KEY_FILE})
+            node.reboot()
+            logging.info("%s", "booted {}: {}".format(label, node.id))
+        linodes.append({"id": node.id, 
+                        "name": name, 
+                        "label": label, 
+                        "ip_private": ip_private, 
+                        "ip_public": ip_public, 
+                        "group": machine['group'], 
+                        "user": "root", 
+                        "key": SSH_PRIVATE_KEY_FILE})
 
 def create(*args, **kwargs):
     try:
@@ -136,21 +188,34 @@ def create(*args, **kwargs):
         os._exit(1)
 
 def launch(client):
-    datacenters = client.avail_datacenters()
-    plans = client.avail_linodeplans()
-    distributions = client.avail_distributions()
-    kernels = client.avail_kernels()
-
-    datacenter = filter(lambda d: d[u'LOCATION'].lower().find(CLUSTER['datacenter'].lower()) >= 0, datacenters)[0][u'DATACENTERID']
-    distribution = filter(lambda d: d[u'LABEL'].lower().find(CLUSTER['distribution'].lower()) >= 0, distributions)[0][u'DISTRIBUTIONID']
+    datacenters = client.regions()
+    plans = client.linode.types()
+    distributions = client.images()
+    kernals = client.linode.kernels()
+    
+    for d in datacenters:
+        str_d_id = d.id 
+        if CLUSTER['datacenter'].lower() in str_d_id:
+            datacenter = d.id
+            logging.info("datacenter: %s" % datacenter) 
+            
+    for distro in distributions:
+        str_distro_label = distro.label
+        if  CLUSTER['distribution'].lower() == str_distro_label.lower():
+            distribution = distro.id
+            logging.info("distro: %s" % distribution)
+    
     if isinstance(CLUSTER['kernel'], str) or isinstance(CLUSTER['kernel'], unicode):
-        kernel = filter(lambda k: k[u'LABEL'].lower().find(str(CLUSTER['kernel']).lower()) >= 0, kernels)[0][u'KERNELID']
+        for k in kernels:
+            if str(CLUSTER['kernel']).lower() in k.id:
+                kernel = k.id
+                logging.info("kernal: %s" % kernel)
     elif isinstance(CLUSTER['kernel'], int):
         kernel = CLUSTER['kernel']
     else:
         raise RuntimeError("kernel field bad")
 
-    running = client.linode_list()
+    running = client.linode.instances()
 
     with closing(ThreadPool(50)) as pool:
         for machine in CLUSTER['nodes']:
@@ -160,7 +225,7 @@ def launch(client):
         pool.close()
         pool.join()
 
-    logging.info("%s", client.linode_list())
+    logging.info("%s", client.linode.instances())
 
     with open("ansible_inventory", mode = 'w') as f:
         groups = set([linode['group'] for linode in linodes])
@@ -181,13 +246,35 @@ def launch(client):
     with open("linodes", mode = 'w') as f:
         f.write(json.dumps(linodes))
 
+def status_check(node, status):
+    logging.info("checking node status")
+    cur_status = ""
+    
+    while cur_status != status:
+        time.sleep(10)
+        cur_status = node.status
+    
+    return
+
+def disk_status_check(node, disk_id, status):
+    logging.debug("checking that disk is ready")
+    cur_status = ""
+    
+    while cur_status != status:
+        time.sleep(10)
+        for disk in node.disks:
+            if disk.id == disk_id.id:
+                cur_status = disk.status
+    return
+    
+
 def main():
     key = os.getenv("LINODE_API_KEY")
     if key is None:
         raise RuntimeError("please specify Linode API key")
 
-    client = linapi.Api(key = key, batching = False)
-
+    client = LinodeClient(key)
+    
     launch(client)
 
 if __name__ == "__main__":

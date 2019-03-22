@@ -3,7 +3,7 @@ import logging
 import os
 import time
 
-import linode.api as linapi
+from linode_api4 import LinodeClient
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
@@ -11,16 +11,16 @@ with open("LINODE_GROUP") as f:
     GROUP = unicode(f.read().strip())
 
 def wait(key):
-    client = linapi.Api(key = key, batching = False)
+    client = LinodeClient(key)
 
     notdone = True
     while notdone:
-        linodes = client.linode_list()
+        linodes = client.linode.instances()
         print(linodes)
         notdone = False
         for linode in linodes:
-            if linode[u'LPM_DISPLAYGROUP'] == GROUP:
-                if linode[u'STATUS'] != 1:
+            if linode.group == GROUP:
+                if linode.status != "running":
                     notdone = True
         time.sleep(5)
 

@@ -7,7 +7,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 from contextlib import closing
 
-import linode.api as linapi
+from linode_api4 import LinodeClient
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
@@ -19,21 +19,22 @@ def main():
     if key is None:
         raise RuntimeError("please specify Linode API key")
 
-    client = linapi.Api(key = key, batching = False)
+    client = LinodeClient(key)
 
     def destroy(linode):
-        client.linode_delete(LinodeID = linode[u'LINODEID'], skipChecks = 1)
+        linode.delete()
+        #client.linode_delete(LinodeID = linode[u'LINODEID'], skipChecks = 1)
 
-    linodes = client.linode_list()
+    linodes = client.linode.instances()
     logging.info("linodes: {}".format(linodes))
 
     with closing(ThreadPool(5)) as pool:
-        group = filter(lambda linode: linode[u'LPM_DISPLAYGROUP'] == GROUP, linodes)
+        group = filter(lambda linode: linode.group == GROUP, linodes)
         pool.map(destroy, group)
         pool.close()
         pool.join()
 
-    linodes = client.linode_list()
+    linodes = client.linode.instances()
     logging.info("linodes: {}".format(linodes))
 
     # clear inventory file or else launch.sh won't create linodes

@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-import linode.api as linapi
+from linode_api4 import LinodeClient
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
@@ -14,11 +14,12 @@ def main():
     if key is None:
         raise RuntimeError("please specify Linode API key")
 
-    client = linapi.Api(key = key, batching = False)
+    client = LinodeClient(key)
 
-    linodes = client.linode_list()
-    linodes = filter(lambda l: l[u'LPM_DISPLAYGROUP'] == GROUP, linodes)
-    print(json.dumps(linodes))
+    linodes = client.linode.instances()
+    linodes = filter(lambda l: l.group == GROUP, linodes)
+    for linode in linodes:
+        print(linode.label)
 
 if __name__ == "__main__":
     main()
