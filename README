@@ -20,13 +20,13 @@ cluster:
   Fedora:
 
     dnf install screen git ansible python3-notario python2-pip python3-pip python3-netaddr jq rsync htop wget
-    pip2 install linode-python
+    pip2 install linode_api4
 
   Arch Linux:
 
     pacman -Syu screen git ansible python3-netaddr python2-pip python3-pip jq rsync htop wget
     pip3 install notario
-    pip2 install linode-python
+    pip2 install linode_api4
 
 * Clone ceph-linode:
 
