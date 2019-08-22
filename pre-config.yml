@@ -58,6 +58,9 @@
       name: systemd-timedated
       state: started
 
+  - name: enable ntp
+    shell: timedatectl set-ntp true
+
 - hosts: mdss
   become: yes
   tasks:
