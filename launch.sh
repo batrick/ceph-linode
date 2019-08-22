@@ -79,14 +79,6 @@ while [ "$#" -ge 0 ]; do
 done
 export CEPH_ANSIBLE
 
-# Don't output the API KEY
-set +x
-if [ -z "$LINODE_API_KEY" ]; then
-    printf "Specify the Linode API key using the LINODE_API_KEY environment variable.\n"
-    exit 1
-fi
-set -x
-
 if ! [ -d "$CEPH_ANSIBLE"/roles ]; then
     printf "Cannot find ceph-ansible environment, please specify the path to ceph-ansible. (current: %s)\n" "$CEPH_ANSIBLE"
 fi

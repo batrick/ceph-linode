@@ -2,6 +2,7 @@ import linode.api as linapi
 import logging
 import os
 import time
+from os.path import expanduser
 
 from contextlib import closing, contextmanager
 from multiprocessing.dummy import Pool as ThreadPool
@@ -50,7 +51,11 @@ def newcb():
 def main():
     key = os.getenv("LINODE_API_KEY")
     if key is None:
-        raise RuntimeError("please specify Linode API key")
+        try:
+            with open(expanduser("~/.linode.key")) as f:
+                key = str(f.read().strip())
+        except:
+            raise RuntimeError("please specify Linode API key")
 
     client = linapi.Api(key = key, batching = False)
 

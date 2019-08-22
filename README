@@ -11,6 +11,12 @@ cluster:
 
 * Setup a Linode account and get an API key: https://www.linode.com/docs/platform/api/api-key
 
+  Put the key in ~/.linode.key:
+
+  cat > ~/.linode.key
+  ABCFejfASFG...
+  ^D
+
 * Setup an ssh key if not already done:
 
   ssh-keygen
@@ -46,4 +52,4 @@ cluster:
 
 * Start using:
 
-    $ LINODE_API_KEY=ABC...DEF ./launch.sh --ceph-ansible /path/to/ceph-ansible
+    $ ./launch.sh --ceph-ansible /path/to/ceph-ansible
