@@ -2,6 +2,7 @@ import binascii
 import logging
 import os
 import time
+from os.path import expanduser
 
 import linode.api as linapi
 
@@ -17,7 +18,10 @@ def info(key):
 
 def main():
     key = os.getenv("LINODE_API_KEY")
-    if key is None:
+    try:
+        with open(expanduser("~/.linode.key")) as f:
+            key = str(f.read().strip())
+    except:
         raise RuntimeError("please specify Linode API key")
 
     info(key)
