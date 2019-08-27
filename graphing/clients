@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -ex
+
+DATA="$(dirname "$1")/clients.txt"
+GRAPH="$(dirname "$1")/clients-num_caps.eps"
+
+sqlite3 -csv "$1" > "$DATA" <<EOF
+SELECT MDSStatus.timestamp, json_extract(j.value, '$.id'), json_extract(j.value, '$.client_metadata.hostname'), SUM(json_extract(j.value, '$.num_caps'))
+    FROM MDSStatus, json_each(MDSStatus.session_ls) AS j
+    GROUP BY MDSStatus.timestamp
+    ;
+EOF
+
+gnuplot <<EOF
+set datafile separator ","
+set terminal postscript eps mono
+set output '${GRAPH}'
+
+stats "${DATA}" using 1 prefix "timestamp" nooutput
+
+set xdata time
+set timefmt "%s"
+set format x "%H:%M"
+set xlabel "Time (hh:mm)"
+set xtics rotate by -45 offset -.8,0
+
+set ylabel "num\\\\_caps"
+set mytics
+
+#plot [][0:] "${DATA}" using (\$1-timestamp_min):4 title "Number of Caps Issued" smooth cumulative
+plot [][0:] "${DATA}" using (\$1-timestamp_min):4 title "Number of Caps Issued"
+EOF
+
+convert -flatten -density 800x800 "$GRAPH" "$(dirname "$GRAPH")/$(basename "$GRAPH" .eps).png"

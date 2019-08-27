@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -xe
+
+#T=$(mktemp -d)
+#for mds in "$1/mds*"; do
+#    if [ -r "$mds/stats.db" ]; then
+#        cp -- "$mds/stats.db" "$T/"
+#    elif [ -r "$mds/stats.db.gz" ]; then
+#        cp -- "$mds/stats.db.gz" "$T/"
+#        gunzip "$T/stats.db.gz"
+#    else
+#        printf "can't find stats.db\n" >&2
+#        exit 1
+#    fi
+#done
+
+T="$1"
+find "$T" -name stats.db.gz -execdir gunzip {} +
+
+for s in "$(dirname "$0")"/mds-*; do
+    s=$(realpath "$s")
+    (cd "$T" && "$s" mds*/*db)
+done

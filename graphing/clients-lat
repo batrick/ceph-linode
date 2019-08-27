@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -ex
+
+for e in $(find -name stats); do
+    (
+        cd "$e"
+        for client in client[0-9]*; do
+            sqlite3 -batch "$client"/root/stats.db "select MAX(json_extract(perf_dump, '$.client.reply.sum')) from ClientStatus;"
+        done
+    ) > "$e"/client-latencies
+    < "$e"/client-latencies awk '{ sum += $1; n++ } END { if (n > 0) print sum / n; }' > "$e"/client-latencies.avg
+done

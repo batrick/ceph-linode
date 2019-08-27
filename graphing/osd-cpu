@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -ex
+
+NAME=osd-cpu
+
+RAW="$1/$NAME.raw"
+DATA="$1/$NAME.dat"
+GRAPH="$1/$NAME.eps"
+
+if ! [ -f "$RAW" ]; then
+(
+    cd "$1"
+    for osd in *osd-[0-9]*; do
+        sqlite3 -separator $'\t' -noheader "$osd/stats.db" <<EOF
+SELECT DaemonStats.timestamp, json_extract(OSDStatus.status, '$.whoami') AS rank, (SUM(DaemonStats.utime)+SUM(DaemonStats.stime))*1.0/Daemon.SC_CLK_TCK
+    FROM Daemon JOIN DaemonStats ON Daemon.id = DaemonStats.id JOIN OSDStatus ON DaemonStats.id = OSDStatus.id AND DaemonStats.timestamp = OSDStatus.timestamp
+    WHERE rank >= 0 AND rank != 18446744073709551615
+    GROUP BY DaemonStats.id, DaemonStats.timestamp
+    ORDER BY DaemonStats.timestamp
+    ;
+EOF
+    done
+) > "$RAW"
+fi
+
+# one data point per second
+lua "$(dirname "$0")/tfix-dy.lua" < "$RAW" > "$DATA"
+
+gnuplot <<EOF
+set datafile separator "\\t"
+set terminal postscript eps color
+set output '${GRAPH}'
+
+DATA = "${DATA}"
+
+stats DATA skip 1
+# using floor to convert float to int
+COL = floor(STATS_columns)
+
+set xdata time
+set timefmt "%s"
+set format x "%H:%M"
+set xlabel "Time (hh:mm)"
+set xtics rotate by -45 offset -.8,0
+
+set key below title "OSD"
+
+set ylabel "CPU Cores Used"
+set yrange [0:]
+set mytics
+
+plot for [i=2:COL] DATA using 1:(sum [col=i:COL] column(col)) with filledcurves x1 title columnheader(i)
+EOF
+
+convert -flatten -density 800x800 "$GRAPH" "$(dirname "$GRAPH")/$(basename "$GRAPH" .eps).png"
