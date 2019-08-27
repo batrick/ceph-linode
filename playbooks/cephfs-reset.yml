@@ -9,21 +9,20 @@
     replicas: 3
     dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3 osd.4 osd.5
   tasks:
-  - name: set all file systems down
-    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
+  # Luminous procedure:
+  #- name: set all file systems down
+  #  shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
+  #- name: fail all ranks
+  #  shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
 
-  - name: fail all ranks
-    shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
+  - name: fail all file systems
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs fail "$fs"; done
 
   - name: destroy all file systems
     shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
 
   - name: delete client.cephfs credential
     shell: "ceph auth del client.cephfs"
-
-  # This config set doesn't work for some reason; use group_vars instead I guess
-  - name: allow pool deletion
-    shell: ceph tell mon.* config set mon_allow_pool_delete 1 || ceph config set mon.* mon_allow_pool_delete true
 
   - name: destroy all pools
     shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done

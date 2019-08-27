@@ -6,7 +6,7 @@
       {
         "count": 3,
         "prefix": "mon",
-        "plan": "4GB",
+        "plan": "1GB",
         "group": "mons"
       },
       {
@@ -23,7 +23,7 @@
         "group": "mdss"
       },
       {
-        "count": 0,
+        "count": 1,
         "prefix": "mgr",
         "plan": "1GB",
         "group": "mgrs"
