@@ -30,7 +30,7 @@ The repository has a number of utilities rougly organized as:
   `playbooks`.
 
 
-## How-to:
+## How-to Get Started:
 
 > :fire: **Note** :fire: For non-toy deployments, it's recommended to use a
 > dedicated linode for running ceph-ansible. This reduces latency of
@@ -109,3 +109,58 @@ The repository has a number of utilities rougly organized as:
     ```bash
     ./launch.sh --ceph-ansible /path/to/ceph-ansible
     ```
+
+## SSH to a particular machine
+
+```bash
+./ansible-ssh mon-000
+```
+
+Or any named node in the `linodes` JSON file.
+
+## Execute ansible commands against the cluster
+
+```bash
+source ansible-env.bash
+ans -m shell -a 'echo im an osd' osds
+ans -m shell -a 'echo im an mds' mdss
+ans -m shell -a 'echo im a client' clients
+...
+```
+
+You can also easily execute playbooks:
+
+```bash
+source ansible-env.bash
+do_playbook foo.yml
+```
+
+## How-to nuke and repave your cluster:
+
+Sometimes you want to start over from a clean slate. Destroying the cluster can
+incur unnecessary costs though as Linodes are billed by the hour, no matter how
+little of an hour you use. It is often cheaper to *nuke* the Linodes by
+deleting all configurations, destroying all disks, etc.
+
+If you used `launch.sh`, you can do this easily via:
+
+```bash
+./launch.sh --nuke ...
+```
+
+It will recreate the cluster without destroying any of your Linodes.
+
+Otherwise, you can manually nuke the cluster if you want using:
+
+```bash
+python2 ./linode-nuke.py
+```
+
+## How-to destroy your cluster:
+
+```bash
+python2 ./linode-destroy.py
+```
+
+The script works by destroying all the Linodes that belong to the group named
+in the `LINODE_GROUP` file, created by `linode-create.py`.
