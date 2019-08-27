@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -ex
+
+DATA="mds-auth-subtrees.csv"
+GRAPH="mds-auth-subtrees.eps"
+
+(
+    first=1
+    for mds in "$@"; do
+        if [ "$first" -eq 0 ]; then
+            printf '\n\n'
+        fi
+        printf '"%s"\n' "$mds"
+        sqlite3 -csv "$mds" <<EOF
+WITH
+    subtrees AS (
+        SELECT timestamp, json_extract(J.value, '$.is_auth') AS is_auth,(CASE WHEN json_extract(J.value, '$.dir.path') = '' THEN '/' ELSE json_extract(J.value, '$.dir.path') END) AS path
+            FROM MDSStatus, json_each(CASE WHEN MDSStatus.subtrees LIKE '"mds_not_active"%' THEN '[]' ELSE MDSStatus.subtrees END) AS J
+    ),
+    public_subtrees AS (
+        SELECT timestamp, is_auth, path
+            FROM subtrees
+            WHERE path LIKE '/%' AND is_auth
+    ),
+    exported_subtrees AS (
+        SELECT MDSStatus.timestamp, path
+            FROM MDSStatus LEFT OUTER JOIN public_subtrees ON MDSStatus.timestamp = public_subtrees.timestamp
+    )
+SELECT timestamp, COUNT(path)
+    FROM exported_subtrees
+    GROUP BY timestamp
+    ;
+EOF
+        first=0
+    done
+) > "$DATA"
+
+gnuplot <<EOF
+set datafile separator ","
+set terminal postscript eps mono
+set output '${GRAPH}'
+
+DATA = "${DATA}"
+
+stats DATA every ::2 prefix "FILE"
+stats DATA every ::2 using 1 prefix "timestamp" nooutput
+
+set xdata time
+set timefmt "%s"
+set format x "%H:%M"
+set xlabel "Time (hh:mm)"
+set xtics rotate by -45 offset -.8,0
+
+set ylabel "Auth Subtrees"
+set mytics
+
+plot [0:][0:] for [IDX=0:FILE_blocks-1] DATA index IDX using (\$1-timestamp_min):2 with lines title columnheader(1)
+EOF
+
+convert -flatten -density 800x800 "$GRAPH" "$(dirname "$GRAPH")/$(basename "$GRAPH" .eps).png"

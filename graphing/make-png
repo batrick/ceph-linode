@@ -1,0 +1,3 @@
+#!/bin/sh
+
+convert -flatten -density 800x800 "$1" "$(dirname "$1")/$(basename "$1" .eps).png"
