@@ -40,7 +40,7 @@ cluster:
 
 * Clone ceph-ansible:
 
-  git clone https://github.com/ceph/ceph-ansible.git
+  git clone -b v4.0.0rc9 https://github.com/ceph/ceph-ansible.git
 
 * Copy cluster.json.sample to cluster.json and modify it to have the desired
   count and Linode plan for each daemon type.
