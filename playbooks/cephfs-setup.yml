@@ -1,5 +1,11 @@
 ---
 
+- hosts: mon-000
+  become: yes
+  tasks:
+  - name: allow pool deletion
+    shell: ceph config set mon mon_allow_pool_delete true
+
 - hosts: all
   become: yes
   tasks:
@@ -36,6 +42,10 @@
   - name: install htoprc
     copy: src=../misc/htoprc dest=/root/.config/htop/ owner=root group=root mode=0644
 
+# Make sure /cephfs is unmounted if it exists otherwise the check that creates /mnt will hang.
+- import_playbook: kernel-umount.yml
+- import_playbook: cephfs-destroy.yml
+
 - hosts: mon-000
   become: yes
   vars:
@@ -43,35 +53,27 @@
     replicas: 3
     dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3
   tasks:
-  # Luminous procedure:
-  #- name: set all file systems down
-  #  shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
-  #- name: fail all ranks
-  #  shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
+  - name: get osds
+    shell: "ceph osd ls"
+    register: osds
 
-  - name: fail all file systems
-    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs fail "$fs"; done
+  - name: remove all device classes
+    shell: "ceph osd crush rm-device-class {{ osds.stdout | replace('\n', ' ') }}"
 
-  - name: destroy all file systems
-    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
+  - name: setup ssd device class
+    shell: "ceph osd crush set-device-class ssd {{ osds.stdout | replace('\n', ' ') }}"
 
-  - name: allow pool deletion
-    shell: ceph config set mon mon_allow_pool_delete true
+  - name: create replicated ssd crush rule
+    shell: ceph osd crush rule create-replicated class-ssd default host ssd
 
-  - name: destroy all pools
-    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
-
-  - name: setup crush rules for metadata pool
+  - name: remove ssd-meta device classes
     shell: "ceph osd crush rm-device-class {{ dedicated_metadata_osds }}"
 
-  - name: setup crush rules for metadata pool
-    shell: "ceph osd crush set-device-class hdd-meta {{ dedicated_metadata_osds }}"
+  - name: setup ssd-meta device class
+    shell: "ceph osd crush set-device-class ssd-meta {{ dedicated_metadata_osds }}"
 
-  - name: create replicated crush rule default
-    shell: ceph osd crush rule create-replicated class-hdd default host hdd
-
-  - name: create replicated crush rule metadata
-    shell: ceph osd crush rule create-replicated class-hdd-meta default host hdd-meta
+  - name: create replicated ssd-meta crush rule
+    shell: ceph osd crush rule create-replicated class-ssd-meta default host ssd-meta
 
 - hosts: mdss
   become: yes
@@ -80,9 +82,6 @@
     yum:
       name: ceph-debuginfo
       state: present
-
-# Make sure /cephfs is unmounted if it exists otherwise the check that creates /mnt will hang.
-- import_playbook: kernel-umount.yml
 
 - hosts: clients
   become: yes
