@@ -1,0 +1,22 @@
+---
+
+- hosts: mon-000
+  become: yes
+  tasks:
+  # Luminous procedure:
+  #- name: set all file systems down
+  #  shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs set "$fs" cluster_down true; done
+  #- name: fail all ranks
+  #  shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
+
+  - name: fail all file systems
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs fail "$fs"; done
+
+  - name: destroy all file systems
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
+
+  - name: delete client.cephfs credential
+    shell: "ceph auth del client.cephfs"
+
+  - name: destroy all pools
+    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
