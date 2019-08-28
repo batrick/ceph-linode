@@ -102,7 +102,7 @@ The repository has a number of utilities rougly organized as:
 * Add a `group_vars` directory in this checkout with the necessary settings. A
   sample has been provided in this checkout which has worked in the past but
   may need updated. See [ceph-ansible documentation for more
-  information](https://github.com/ceph/ceph-ansible/wiki#common).
+  information](https://docs.ceph.com/ceph-ansible/master/).
 
 * Start using:
 
