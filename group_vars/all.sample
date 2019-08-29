@@ -16,3 +16,7 @@ cephfs_data: cephfs_data
 ceph_conf_overrides:
   mon:
     mon_allow_pool_delete: true
+
+# Set this if you're using OSDs with memory 4GB or less:
+#  osd:
+#    osd_memory_target: 3GB
