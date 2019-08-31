@@ -99,6 +99,8 @@ The repository has a number of utilities rougly organized as:
   ansible playbook `playbooks/cephfs-setup.yml` will configure 4 OSDs to be
   dedicated for the metadata pool.
 
+> :fire: **Note** :fire: The OSD memory target set by ceph-ansible is always at least 4GB, otherwise set appropriately and automatically based on the available memory on the OSD. If you use smaller OSDs (4GB or smaller), then you must configure the memory target manually via the `ceph_conf_overrides` in `group_vars/all`.
+
 * Add a `group_vars` directory in this checkout with the necessary settings. A
   sample has been provided in this checkout which has worked in the past but
   may need updated. See [ceph-ansible documentation for more
