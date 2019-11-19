@@ -10,7 +10,6 @@ GRAPH="$NAME.eps"
 
 function header {
   printf 'timestamp'
-  printf '\trank'
   printf '\tcreate'
   printf '\tgetattr'
   printf '\tlookup'
