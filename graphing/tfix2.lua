@@ -70,11 +70,14 @@ for rank, mds in pairs(mds) do
 end
 table.sort(ranks)
 
-io.write 'timestamp'
-for _, rank in ipairs(ranks) do
-    io.write('\t', rank)
+if arg[1] ~= '--no-header' then
+  io.write 'timestamp'
+  for _, rank in ipairs(ranks) do
+      io.write('\t', rank)
+  end
+  io.write '\n'
 end
-io.write '\n'
+
 for i = min_timestamp, max_timestamp do
     io.write(i-min_timestamp)
     for id, rank in ipairs(ranks) do

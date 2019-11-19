@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -ex
+
+NAME=mds-requests-type
+
+RAW="$NAME.raw"
+DATA="$NAME.dat"
+GRAPH="$NAME.eps"
+
+function header {
+  printf 'timestamp'
+  printf '\trank'
+  printf '\tcreate'
+  printf '\tgetattr'
+  printf '\tlookup'
+  printf '\tmkdir'
+  printf '\topen'
+  printf '\treaddir'
+  printf '\trename'
+  printf '\trmdir'
+  printf '\tsetxattr'
+  printf '\tsymlink'
+  printf '\tunlink'
+  printf '\n'
+}
+
+if ! [ -f "$RAW" ]; then
+(
+    for mds in "$@"; do
+        sqlite3 -separator $'\t' -noheader "$mds" <<EOF
+SELECT MDSStatus.timestamp
+     , JSON_EXTRACT(MDSStatus.status, '$.whoami') AS rank
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_create_latency.avgcount') AS req_create
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_getattr_latency.avgcount') AS req_getattr
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_lookup_latency.avgcount') AS req_lookup
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_mkdir_latency.avgcount') AS req_mkdir
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_open_latency.avgcount') AS req_open
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_readdir_latency.avgcount') AS req_readdir
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_rename_latency.avgcount') AS req_rename
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_rmdir_latency.avgcount') AS req_rmdir
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_setxattr_latency.avgcount') AS req_setxattr
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_symlink_latency.avgcount') AS req_symlink
+     , JSON_EXTRACT(MDSStatus.perf_dump, '$.mds_server.req_unlink_latency.avgcount') AS req_unlink
+    FROM MDSStatus JOIN DaemonStats ON DaemonStats.id = MDSStatus.id AND DaemonStats.timestamp = MDSStatus.timestamp
+    WHERE rank >= 0 AND rank != 18446744073709551615
+    GROUP BY MDSStatus.id, MDSStatus.timestamp
+    ORDER BY MDSStatus.timestamp
+    ;
+EOF
+    done
+) > "$RAW"
+fi
+
+# one data point per second
+< "$RAW" lua "$(dirname "$0")/tfix2.lua" --no-header | cat <(header) - > "$DATA"
+
+gnuplot <<EOF
+set datafile separator "\\t"
+set terminal postscript eps color
+set output '${GRAPH}'
+
+DATA = "${DATA}"
+
+stats DATA skip 1
+# using floor to convert float to int
+COL = floor(STATS_columns)
+
+set xdata time
+set timefmt "%s"
+set format x "%H:%M"
+set xlabel "Time (hh:mm)"
+set xtics rotate by -45 offset -.8,0
+
+set key below title "MDS Rank"
+
+set ylabel "Client Requests"
+set mytics
+#set ytics nomirror
+
+#set y2tics nomirror 10
+#set y2range [0:100]
+#set y2label 'Percent' 
+
+plot for [i=3:COL] DATA using 1:(sum [col=i:COL] column(col)) with filledcurves x1 title columnheader(i)
+EOF
+
+convert -flatten -density 800x800 "$GRAPH" "$(dirname "$GRAPH")/$(basename "$GRAPH" .eps).png"

@@ -89,6 +89,7 @@ cat > ansible.cfg <<EOF
 action_plugins = ${CEPH_ANSIBLE}/plugins/actions
 library = ${CEPH_ANSIBLE}/library
 roles_path = ${CEPH_ANSIBLE}/roles
+filter_plugins = ${CEPH_ANSIBLE}/plugins/filter
 EOF
 
 main |& tee -a "$LOG"
