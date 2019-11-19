@@ -1,7 +1,7 @@
 {
   "datacenter": "Newark",
   "distribution": "CentOS 7",
-  "kernel": 210,
+  "kernel": "GRUB 2",
   "nodes": [
       {
         "count": 3,
