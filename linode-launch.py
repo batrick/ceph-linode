@@ -136,6 +136,17 @@ def create(*args, **kwargs):
         logging.exception(e)
         os._exit(1)
 
+def kernel_id(kernels, kernel):
+    if kernel is None:
+        return = filter(lambda k: k[u'LABEL'].lower().find("GRUB 2") >= 0, kernels)[0][u'KERNELID']
+    elif isinstance(kernel, str) or isinstance(kernel, unicode):
+        return = filter(lambda k: k[u'LABEL'].lower().find(str(kernel).lower()) >= 0, kernels)[0][u'KERNELID']
+    elif isinstance(kernel, int):
+        return kernel
+    else:
+        raise RuntimeError("kernel bad")
+
+
 def launch(client):
     datacenters = client.avail_datacenters()
     plans = client.avail_linodeplans()
@@ -144,20 +155,20 @@ def launch(client):
 
     datacenter = filter(lambda d: d[u'LOCATION'].lower().find(CLUSTER['datacenter'].lower()) >= 0, datacenters)[0][u'DATACENTERID']
     distribution = filter(lambda d: d[u'LABEL'].lower().find(CLUSTER['distribution'].lower()) >= 0, distributions)[0][u'DISTRIBUTIONID']
-    if isinstance(CLUSTER['kernel'], str) or isinstance(CLUSTER['kernel'], unicode):
-        kernel = filter(lambda k: k[u'LABEL'].lower().find(str(CLUSTER['kernel']).lower()) >= 0, kernels)[0][u'KERNELID']
-    elif isinstance(CLUSTER['kernel'], int):
-        kernel = CLUSTER['kernel']
-    else:
-        raise RuntimeError("kernel field bad")
+    default_kernel = kernel_id(kernels, CLUSTER['kernel'])
 
     running = client.linode_list()
 
     with closing(ThreadPool(50)) as pool:
-        for machine in CLUSTER['nodes']:
-            for i in range(machine['count']):
+        for group in CLUSTER['nodes']:
+            kernel = group['kernel']
+            if kernel is not None:
+                kernel = kernel_id(kernels, kernel)
+            else:
+                kernel = default_kernel
+            for i in range(group['count']):
                 logging.info("%s", "i={i}".format(i=i))
-                pool.apply_async(create, (client, running, datacenter, plans, distribution, kernel, machine, i))
+                pool.apply_async(create, (client, running, datacenter, plans, distribution, kernel, group, i))
         pool.close()
         pool.join()
 
