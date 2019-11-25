@@ -7,9 +7,13 @@ if [ -z "$N" ]; then
     N=1
 fi
 
+MAX_MDS="$2"
+
 function do_clone_kernel {
     pushd "$(mktemp -d -p "." linux.XXXXXX)"
-    setfattr -n ceph.dir.pin -v $(( RANDOM % 2 )) .
+    if [ -n "$MAX_MDS" ]; then
+        setfattr -n ceph.dir.pin -v $(( RANDOM % MAX_MDS )) .
+    fi
     git clone "file://$(realpath /cephfs/linux/.git)" "."
     setfattr -n ceph.dir.pin -v -1 .
 }

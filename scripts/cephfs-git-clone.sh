@@ -72,10 +72,10 @@ function do_bootstrap {
   posttest "$D" client-000
   # Now create 100 other distinct clones of that for future tests
   D="$1/clone/"
-  ans -m shell -a "ceph fs set cephfs max_mds 2" mon-000
+  ans -m shell -a "ceph fs set cephfs max_mds $MAX_MDS" mon-000
   run ans --module-name=copy --args="src=misc/clone-kernel-sources.sh dest=/root/ owner=root group=root mode=755" clients
   pretest "$D" clients
-  run ans -m shell -a "/root/clone-kernel-sources.sh 4" "$(nclients 25)"
+  run ans -m shell -a "/root/clone-kernel-sources.sh 4 $MAX_MDS" "$(nclients 25)"
   posttest "$D" clients
   ans -m shell -a "ceph fs set cephfs max_mds 1" mon-000
 }
@@ -83,21 +83,21 @@ function do_bootstrap {
 function do_test {
   local exp="$1"
   local i="$2"
-  local MAX_MDS="$3"
-  local COUNT="$4"
-  local instance="$(printf 'max_mds:%02d/count:%02d/i:%02d/' "$MAX_MDS" "$COUNT" "$i")"
+  local max_mds="$3"
+  local count="$4"
+  local instance="$(printf 'max_mds:%02d/count:%02d/i:%02d/' "$max_mds" "$count" "$i")"
   local D="${exp}/results/${instance}"
   run mkdir -p "$D"
   printf '%d\n' "$i" > "$D"/i
-  printf '%d\n' "$MAX_MDS" > "$D"/max_mds
-  printf '%d\n' "$COUNT" > "$D"/count
+  printf '%d\n' "$max_mds" > "$D"/max_mds
+  printf '%d\n' "$count" > "$D"/count
   printf '%s\n' "$instance" > "$D"/instance
   printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$D"/date
   {
-    ans -m shell -a "ceph fs set cephfs max_mds $MAX_MDS" mon-000
+    ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
     run ans --module-name=copy --args="src=misc/test-clone-rm-kernel.sh dest=/root/ owner=root group=root mode=755" clients
     pretest "$D" clients
-    run ans -m shell -a "/root/test-clone-rm-kernel.sh $(( COUNT > 32 ? COUNT/32 : 1 )) $MAX_MDS" "$(nclients "$COUNT" 32)"
+    run ans -m shell -a "/root/test-clone-rm-kernel.sh $(( count > 32 ? count/32 : 1 )) $max_mds" "$(nclients "$count" 32)"
     posttest "$D" clients
   } |& tee "$D"/log
 }
