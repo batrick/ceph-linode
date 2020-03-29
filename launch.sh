@@ -15,13 +15,13 @@ RETRY="${YML%.*}.retry"
 
 function main {
     if [ "$NUKE" -gt 0 ]; then
-        time python2 "$(dirname "$0")/linode-nuke.py"
+        time python3 "$(dirname "$0")/linode.py" nuke
     fi
     if [ "$NUKE" -gt 0 -o ! -f ansible_inventory ]; then
-        time python2 "$(dirname "$0")/linode-launch.py"
+        time python3 "$(dirname "$0")/linode.py" launch
     fi
     # wait for Linodes to finish booting
-    time python2 "$(dirname "$0")/linode-wait.py"
+    #time python3 "$(dirname "$0")/linode-wait.py"
 
     do_playbook --limit=all "$(dirname "$0")/pre-config.yml"
 

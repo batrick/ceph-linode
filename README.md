@@ -6,7 +6,7 @@ Ceph at scale.
 
 The repository has a number of utilities rougly organized as:
 
-* `linode-*.py`: scripts to rapidly create/configure/nuke/destroy Linodes.
+* `linode.py`: script to rapidly create/configure/nuke/destroy Linodes.
 
 * `launch.sh`: a helper script for launching a Ceph cluster or repaving
   an existing one.
@@ -65,16 +65,15 @@ The repository has a number of utilities rougly organized as:
   **Fedora**:
 
     ```bash
-    dnf install screen git ansible python3-notario python2-pip python3-pip python3-netaddr jq rsync htop wget
-    pip2 install linode-python
+    dnf install screen git ansible python3-notario python3-pip python3-netaddr jq rsync htop wget
+    pip3 install linode_api4
     ```
 
   **Arch Linux**:
 
     ```bash
-    pacman -Syu screen git ansible python3-netaddr python2-pip python3-pip jq rsync htop wget
-    pip3 install notario
-    pip2 install linode-python
+    pacman -Syu screen git ansible python3-netaddr python3-pip jq rsync htop wget
+    pip3 install notario linode_api4
     ```
 
 * Clone ceph-linode:
@@ -155,13 +154,13 @@ It will recreate the cluster without destroying any of your Linodes.
 Otherwise, you can manually nuke the cluster if you want using:
 
 ```bash
-python2 ./linode-nuke.py
+python3 linode.py nuke
 ```
 
 ## How-to destroy your cluster:
 
 ```bash
-python2 ./linode-destroy.py
+python3 linode.py destroy
 ```
 
 The script works by destroying all the Linodes that belong to the group named
