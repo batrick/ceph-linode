@@ -42,8 +42,6 @@ The repository has a number of utilities rougly organized as:
 > on the ansible linode otherwise ansible will not be able to communicate with
 > the ceph cluster.
 
-> :fire: **Note** :fire: Linode recently updated their GUI for viewing Linodes and the associated API. `ceph-linode` has not yet been updated to this new API. Always view your Linodes using [the old gateway](https://manager.linode.com/).
-
 * Setup a Linode account and [get an API key](https://www.linode.com/docs/platform/api/api-key).
 
   Put the key in `~/.linode.key`:
@@ -85,7 +83,7 @@ The repository has a number of utilities rougly organized as:
 * Clone ceph-ansible:
 
   ```bash
-  git clone -b v4.0.0rc9 https://github.com/ceph/ceph-ansible.git
+  git clone -b v4.0.17 https://github.com/ceph/ceph-ansible.git
   ```
 
   It's recommended to use a tagged version to limit the possibility of
@@ -164,4 +162,4 @@ python3 linode.py destroy
 ```
 
 The script works by destroying all the Linodes that belong to the group named
-in the `LINODE_GROUP` file, created by `linode-create.py`.
+in the `LINODE_GROUP` file, created by `linode.py`.
