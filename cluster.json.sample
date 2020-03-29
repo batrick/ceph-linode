@@ -29,6 +29,12 @@
       },
       {
         "count": 1,
+        "prefix": "grafana",
+        "type": "1024",
+        "group": "grafana-server"
+      },
+      {
+        "count": 1,
         "prefix": "client",
         "type": "1024",
         "group": "clients"

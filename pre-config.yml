@@ -27,14 +27,19 @@
     shell: systemctl daemon-reexec
     when: coreline.changed
 
+  - name: update packages
+    yum:
+      name: "*"
+      state: latest
+      update_cache: yes
+
   # package setup
   # - logrotate needs psmisc for killall
   # - ceph-ansible needs EPEL but also needs ca-certificates installed to avoid some errors, do this now
   - name: install launcher packages
-    yum: name=logrotate,psmisc,epel-release,ca-certificates,wget,ntp state=latest update_cache=yes
-
-  - name: update packages
-    shell: yum --disablerepo=epel -y update
+    yum:
+      name: logrotate,psmisc,epel-release,ca-certificates,wget,chrony
+      state: latest
 
   # log rotation setup
   - name: copy ceph-logrotate.timer
@@ -52,14 +57,11 @@
   - name: register crontab
     shell: crontab crontab
 
-  - name: start and enable systemd-timedated
+  - name: enable ntp
     systemd:
       enabled: yes
-      name: systemd-timedated
+      name: chronyd
       state: started
-
-  - name: enable ntp
-    shell: timedatectl set-ntp true
 
 - hosts: mdss
   become: yes

@@ -241,6 +241,10 @@ class CephLinode():
                 instance = self.client.linode.instance_create(**spec)
 
         with releasing(self.config_semaphore):
+            if not instance.tags:
+                instance.tags = [self.group, machine['group']]
+                instance.save()
+
             if not instance.ips.ipv4.private:
                 logging.info(f"{label}: allocating private IP")
                 instance.ip_allocate()
@@ -332,12 +336,12 @@ class CephLinode():
         logging.info(f"{[f.result() for f in running]}")
 
         with open("ansible_inventory", mode = 'w') as f:
-            groups = set([f.result().group for f in running])
+            groups = set([node['group'] for node in self.cluster['nodes']])
             for group in groups:
-                f.write("f[{group}]\n")
+                f.write(f"[{group}]\n")
                 for future in running:
                     linode = future.result()
-                    if linode.group == group:
+                    if group in linode.tags:
                         if socket.gethostname().endswith('.linode.com'):
                             # assumes deployment node is at same site as ceph cluster
                             ip = linode.ips.ipv4.private[0].address

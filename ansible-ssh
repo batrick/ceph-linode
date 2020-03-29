@@ -5,7 +5,7 @@ function run {
     "$@"
 }
 
-ip=$(< linodes jq -rc ".[] | select(.name | contains(\"$1\")) | .ip_public" | head -n1)
+ip=$(< linodes jq -rc ".[] | select(.label | contains(\"$1\")) | .ip_public" | head -n1)
 if [ -n "$ip" ]; then
     exec ssh -o UserKnownHostsFile=/dev/null -o 'StrictHostKeyChecking=no' -o PreferredAuthentications=publickey "root@$ip" < /dev/tty
 else
