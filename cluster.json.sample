@@ -1,37 +1,36 @@
 {
-  "datacenter": "Newark",
-  "distribution": "CentOS 7",
-  "kernel": "GRUB 2",
+  "region": "us-west",
+  "image": "CentOS 8",
   "nodes": [
       {
         "count": 3,
         "prefix": "mon",
-        "plan": "1GB",
+        "type": "1024",
         "group": "mons"
       },
       {
         "count": 3,
         "prefix": "osd",
-        "plan": "1GB",
+        "type": "1024",
         "root_size": 4096,
         "group": "osds"
       },
       {
         "count": 1,
         "prefix": "mds",
-        "plan": "1GB",
+        "type": "1024",
         "group": "mdss"
       },
       {
         "count": 1,
         "prefix": "mgr",
-        "plan": "1GB",
+        "type": "1024",
         "group": "mgrs"
       },
       {
         "count": 1,
         "prefix": "client",
-        "plan": "1GB",
+        "type": "1024",
         "group": "clients"
       }
   ]
