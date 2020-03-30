@@ -218,8 +218,7 @@ class CephLinode():
 
     @busy_retry(EAgain)
     def _do_create(self, machine, i):
-        name = f"{machine['prefix']}-{i:03d}"
-        label = f"{self.group}-{name}"
+        label = f"{machine['prefix']}-{i:03d}"
 
         existing = self.instances(Instance.label == label)
         assert(len(existing) <= 1)
