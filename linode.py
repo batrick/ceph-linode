@@ -432,7 +432,7 @@ class CephLinode():
 
         nuke_semaphore = BoundedSemaphore(10)
         with ThreadPoolExecutor(max_workers=50) as executor:
-            executor.map(self._nuke, nuke_semaphore, self.instances())
+            executor.map(lambda node: self._nuke(nuke_semaphore, node), self.instances())
 
         # clear inventory file or else launch.sh won't create linodes
         ansible_inv_file = os.getenv('ANSIBLE_INVENTORY')
