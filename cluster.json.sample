@@ -28,7 +28,8 @@
       {
         "count": 1,
         "prefix": "client",
-        "group": "clients"
+        "group": "clients",
+        "type": 1024
       }
   ]
 }
