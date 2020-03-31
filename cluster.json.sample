@@ -13,7 +13,7 @@
         "prefix": "osd",
         "type": "1024",
         "root_size": 4096,
-        "group": "osds",
+        "group": "osds"
       },
       {
         "count": 1,
