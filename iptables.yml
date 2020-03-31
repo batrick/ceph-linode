@@ -1,0 +1,73 @@
+- hosts: all
+  become: yes
+  tasks:
+  - name: install launcher packages
+    yum:
+      name: iptables-services
+      state: latest
+
+  # We disable firewalld because we don't want anything (like
+  # grafana/prometheus) to be accessible via the internet. cephadm opens up
+  # those ports if it detects firewalld. Also, if we leave this on and
+  # configure iptables, then the ceph cluster becomes inaccessible during
+  # cephadm bootstrap.
+  - name: disable firewalld
+    systemd:
+      name: firewalld.service
+      state: stopped
+      enabled: no
+
+  - name: enable iptables-services
+    systemd:
+      enabled: yes
+      name: iptables.service
+      state: started
+
+  - name: Set the policy for the INPUT chain to ACCEPT
+    iptables:
+      chain: INPUT
+      policy: ACCEPT
+
+  - name: clear iptables
+    iptables:
+      flush: yes
+      chain: INPUT
+
+  - name: accept ssh connections
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      destination_port: 22
+      ctstate: NEW
+      syn: match
+      jump: ACCEPT
+      comment: Accept new SSH connections.
+
+  - name: accept existing connections
+    iptables:
+      chain: INPUT
+      ctstate: ESTABLISHED,RELATED
+      jump: ACCEPT
+      comment: Accept existing connections.
+
+  - name: Match on IP ranges
+    iptables:
+      chain: INPUT
+      source: 192.168.0.0/16
+      jump: ACCEPT
+      comment: Allow private ip traffic.
+
+  - name: Match on localhost
+    iptables:
+      chain: INPUT
+      source: 127.0.0.0/8
+      jump: ACCEPT
+      comment: Allow localhost traffic.
+
+  - name: Set the policy for the INPUT chain to DROP
+    iptables:
+      chain: INPUT
+      policy: DROP
+
+  - name: save iptables rules
+    shell: /usr/libexec/iptables/iptables.init save

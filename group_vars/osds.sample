@@ -1,9 +1,0 @@
-# This sample is just to note some common changes (some required by
-# ceph-ansible) to group_vars for a Linode deployment. These variables may go
-# out-of-date as ceph-ansible evolves.
-
-journal_size: 100
-lvm_volumes:
-  - data: /dev/sdc
-osd_scenario: lvm
-osd_objectstore: bluestore

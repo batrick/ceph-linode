@@ -9,24 +9,6 @@
 - hosts: all
   become: yes
   tasks:
-  - name: create hosts from inventory
-    shell: ../scripts/inventory2hosts.py ../ansible_inventory
-    register: invhosts
-    run_once: true
-    delegate_to: localhost
-
-  - name: cp hosts to all
-    copy:
-      content: "{{ invhosts.stdout }}"
-      dest: /etc/hosts
-
-  - name: cp hosts to localhost
-    copy:
-      content: "{{ invhosts.stdout }}"
-      dest: /etc/hosts
-    run_once: true
-    delegate_to: localhost
-
   - name: cp ceph-gather.py
     copy: src=../misc/ceph-gather.py dest=/ owner=root group=root mode=0755
 

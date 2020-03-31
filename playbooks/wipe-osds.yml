@@ -1,0 +1,5 @@
+- hosts: osds
+  become: yes
+  tasks:
+    - name: wipe /dev/sdc
+      shell: wipefs -a /dev/sdc
