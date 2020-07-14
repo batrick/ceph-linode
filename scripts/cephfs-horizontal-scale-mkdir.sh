@@ -10,9 +10,9 @@ set -e
 ephemeral_distributed=$1
 remove_dir=$2
 
-MAX_MDS=$(< linodes jq --raw-output 'map(select(.name | startswith("mds"))) | length')
+MAX_MDS=$(< linodes jq --raw-output 'map(select(.label | startswith("mds"))) | length')
 MAX_MDS=$((MAX_MDS-1)) # leave one for standby
-NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.name | startswith("client"))) | length')
+NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.label | startswith("client"))) | length')
 
 TEST=kernel
 
@@ -86,7 +86,7 @@ function main {
   exp="${RESULTS}/${EXPERIMENT}"
   mkdir -p -- "$exp"
 
-  run cp -av -- launch.log ansible_inventory linodes cluster.json group_vars "$exp/"
+  run cp -av -- ansible_inventory linodes cluster.json "$exp/"
 
   {
     run do_playbook playbooks/cephfs-setup.yml

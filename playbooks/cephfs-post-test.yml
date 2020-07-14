@@ -1,5 +1,7 @@
 ---
 
+- import_playbook: ceph-fsid.yml
+
 - import_playbook: ceph-gather-stop.yml
 
 - import_playbook: ceph-save-state.yml

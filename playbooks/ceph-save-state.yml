@@ -24,12 +24,12 @@
   - name: save fs dump
     shell: ceph fs dump > fs_dump-$(date '+%Y-%m-%d-%H-%M').txt
 
+  - name: save config dump
+    shell: ceph config dump > config_dump-$(date '+%Y-%m-%d-%H-%M').txt
+
 - hosts: mons mgrs mdss osds
   become: yes
   tasks:
-  - name: save config show
-    shell: ceph daemon /var/run/ceph/ceph-*.asok config show > config-show-$(date '+%Y-%m-%d-%H-%M').txt
-
   - name: save sysctl
     shell: sysctl -a > sysctl-$(date '+%Y-%m-%d-%H-%M').txt
 
