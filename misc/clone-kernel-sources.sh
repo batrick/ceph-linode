@@ -2,23 +2,16 @@
 
 set -e
 
-N="$1"
-if [ -z "$N" ]; then
-    N=1
-fi
-
-MAX_MDS="$2"
-
 function do_clone_kernel {
     pushd "$(mktemp -d -p "." linux.XXXXXX)"
-    if [ -n "$MAX_MDS" ]; then
+    if [ "$PIN" -a -n "$MAX_MDS" ]; then
         setfattr -n ceph.dir.pin -v $(( RANDOM % MAX_MDS )) .
     fi
     git clone "file://$(realpath /cephfs/linux/.git)" "."
     setfattr -n ceph.dir.pin -v -1 .
 }
 
-{
+function main {
     count=0
     while true; do
         if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
@@ -32,9 +25,49 @@ function do_clone_kernel {
 
     mkdir -p /cephfs/sources
     pushd /cephfs/sources
-    for ((i = 0; i < N; ++i)); do
+    if [ "$DISTRIBUTED" ]; then
+        setfattr -n ceph.dir.pin -v 0 .
+        setfattr -n ceph.dir.pin.distributed -v 1 .
+    fi
+    for ((i = 0; i < COUNT; ++i)); do
         (do_clone_kernel "$i") &> /root/client-output-$i.txt &
     done
     wait
     popd
-} > /root/client-output.txt 2>&1
+}
+
+ARGUMENTS='--options d,h,p: --long distributed,help,pin:'
+NEW_ARGUMENTS=$(getopt $ARGUMENTS -- "$@")
+eval set -- "$NEW_ARGUMENTS"
+
+function usage {
+    printf "%s: [--distributed|--pin=<max_mds>] <count>\n" "$0"
+}
+
+while [ "$#" -ge 0 ]; do
+    case "$1" in
+        -d|--distributed)
+            DISTRIBUTED=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit
+            ;;
+        -p|--pin)
+            shift
+            PIN=1
+            MAX_MDS="$1"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+
+COUNT="$1"
+shift
+
+main |& tee client-output.txt
