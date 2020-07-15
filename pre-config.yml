@@ -27,6 +27,12 @@
     shell: systemctl daemon-reexec
     when: coreline.changed
 
+  - name: enable epel-release
+    yum:
+      name: "epel-release"
+      state: latest
+      update_cache: yes
+
   - name: update packages
     yum:
       name: "*"
