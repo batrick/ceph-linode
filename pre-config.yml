@@ -44,7 +44,7 @@
   # - ceph-ansible needs EPEL but also needs ca-certificates installed to avoid some errors, do this now
   - name: install launcher packages
     yum:
-      name: logrotate,psmisc,epel-release,ca-certificates,wget,chrony
+      name: logrotate,psmisc,ca-certificates,python3,chrony,podman,lvm2
       state: latest
 
   # log rotation setup
@@ -84,6 +84,18 @@
 - hosts: osds
   become: yes
   tasks:
+  # This cleans up after a nuke operation (disks are not wiped)
+  # This will fail if the lvm volume is busy
+  - name: clear old lvm volumes
+    shell: lvremove --yes /dev/ceph*/*
+    ignore_errors: yes
+
+  # This cleans up after a nuke operation (disks are not wiped)
+  # This will fail if the lvm volume is busy
+  - name: clear /dev/sdc
+    shell: wipefs -a /dev/sdc
+    ignore_errors: yes
+
   - name: check for osd logrotate config
     local_action: stat path="ceph-osd.logrotate"
     register: ceph_osd_logrotate
@@ -110,3 +122,5 @@
   tasks:
   - name: install nfs-utils
     yum: name=nfs-utils state=latest update_cache=yes
+
+- import_playbook: iptables.yml

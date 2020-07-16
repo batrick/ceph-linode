@@ -8,15 +8,10 @@ The repository has a number of utilities rougly organized as:
 
 * `linode.py`: script to rapidly create/configure/nuke/destroy Linodes.
 
-* `launch.sh`: a helper script for launching a Ceph cluster or repaving
-  an existing one.
-
 * `pre-config.yml`: an ansible playbook to pre-configure Linodes with useful
-   packages or utilities prior to installing Ceph via ceph-ansible.
+   packages or utilities prior to installing Ceph.
 
-* `group_vars`: template group variables for ceph-ansible. These samples
-  contain some suggested configurations to get started rapidly. See the
-  ceph-ansible docs for other options.
+* `cephadm.yml`: an ansible playbook to install Ceph using cephadm.
 
 * `playbooks/`: ansible playbooks for running serial tests and collecting test
   artifacts and performance data. Note that most of these playbooks were
@@ -33,7 +28,7 @@ The repository has a number of utilities rougly organized as:
 ## How-to Get Started:
 
 > :fire: **Note** :fire: For non-toy deployments, it's recommended to use a
-> dedicated linode for running ceph-ansible. This reduces latency of
+> dedicated linode for running ansible. This reduces latency of
 > operations, internet hiccups, allows you to allocate enough RAM for
 > memory-hungry ansible, and rapidly download test artifacts for archival.
 > Generally, the more RAM/cores the better. **Also**: make sure to [enable a
@@ -80,33 +75,20 @@ The repository has a number of utilities rougly organized as:
   git clone https://github.com/batrick/ceph-linode.git
   ```
 
-* Clone ceph-ansible:
-
-  ```bash
-  git clone -b v4.0.17 https://github.com/ceph/ceph-ansible.git
-  ```
-
-  It's recommended to use a tagged version to limit the possibility of
-  compatibility bugs between the version of Ceph you're using and the version
-  of ceph-ansible it's deployed with.
-
 * Copy `cluster.json.sample` to `cluster.json` and modify it to have the desired
   count and Linode plan for each daemon type. If you're planning to do testing
   with CephFS, it is recommend to have 3+ MDS, 2+ clients, and 8+ OSDs. The
   ansible playbook `playbooks/cephfs-setup.yml` will configure 4 OSDs to be
   dedicated for the metadata pool.
 
-> :fire: **Note** :fire: The OSD memory target set by ceph-ansible is always at least 4GB, otherwise set appropriately and automatically based on the available memory on the OSD. If you use smaller OSDs (4GB or smaller), then you must configure the memory target manually via the `ceph_conf_overrides` in `group_vars/all`.
-
-* Add a `group_vars` directory in this checkout with the necessary settings. A
-  sample has been provided in this checkout which has worked in the past but
-  may need updated. See [ceph-ansible documentation for more
-  information](https://docs.ceph.com/ceph-ansible/master/).
+> :fire: **Note** :fire: The OSD memory target is always at least 4GB, otherwise set appropriately and automatically based on the available memory on the OSD. If you use smaller OSDs (4GB or smaller), then you must configure the memory target manually via changing the Ceph config.
 
 * Start using:
 
     ```bash
-    ./launch.sh --ceph-ansible /path/to/ceph-ansible
+    python3 linode.py launch
+    source ansible-env.sh
+    do_playbook cephadm.yml
     ```
 
 ## SSH to a particular machine
@@ -141,15 +123,7 @@ incur unnecessary costs though as Linodes are billed by the hour, no matter how
 little of an hour you use. It is often cheaper to *nuke* the Linodes by
 deleting all configurations, destroying all disks, etc.
 
-If you used `launch.sh`, you can do this easily via:
-
-```bash
-./launch.sh --nuke ...
-```
-
-It will recreate the cluster without destroying any of your Linodes.
-
-Otherwise, you can manually nuke the cluster if you want using:
+You can manually nuke the cluster if you want using:
 
 ```bash
 python3 linode.py nuke
@@ -163,3 +137,5 @@ python3 linode.py destroy
 
 The script works by destroying all the Linodes that belong to the group named
 in the `LINODE_GROUP` file, created by `linode.py`.
+
+This deletes EVERYTHING and stops any further billing.

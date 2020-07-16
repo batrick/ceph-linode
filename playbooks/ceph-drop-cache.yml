@@ -1,16 +1,27 @@
 ---
 
+- hosts: mon-000
+  become: yes
+  tasks:
+  # Ignore ENOSYS from standby
+  - name: flush MDS journals
+    shell: ceph tell mds.* flush journal
+    ignore_errors: yes
+
 - hosts: mdss
   become: yes
   tasks:
-  - name: flush MDS journals
-    shell: ceph --admin-daemon /var/run/ceph/ceph-mds.*asok flush journal
+  - name: restart mds service to drop cache
+    shell:
+      cmd: |
+        systemctl reset-failed "ceph-{{ fsid }}@mds*"
+        systemctl restart "ceph-{{ fsid }}@mds*"
 
-- hosts: mdss osds
+- hosts: osds
   become: yes
   tasks:
-  - name: restart ceph service to drop cache
-    systemd:
-      daemon_reload: true # resets any burst timers
-      name: ceph.target
-      state: restarted
+  - name: restart osd service to drop cache
+    shell:
+      cmd: |
+        systemctl reset-failed "ceph-{{ fsid }}@osd*"
+        systemctl restart "ceph-{{ fsid }}@osd*"

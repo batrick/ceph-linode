@@ -1,0 +1,186 @@
+---
+
+- hosts: all
+  gather_facts: no
+  tasks:
+  - set_fact:
+      CEPHADM_IMAGE: ceph/daemon-base:latest-octopus-devel
+      CEPHADM_REPO: --dev octopus
+
+- name: preconfigure linodes
+  import_playbook: pre-config.yml
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: fetch cephadm
+    delegate_to: localhost
+    register: cephadm
+    run_once: true
+    uri:
+      force: yes
+      mode: 0755
+      return_content: yes
+      url: https://github.com/ceph/ceph/raw/octopus/src/cephadm/cephadm
+
+  - name: distribute cephadm
+    copy:
+      dest: /root/cephadm
+      group: root
+      mode: 0755
+      owner: root
+      content: "{{ cephadm.content }}"
+
+  - name: create /etc/ceph directory
+    file:
+      path: /etc/ceph
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: create hosts from inventory
+    shell: ./misc/generate-hosts.py linodes
+    register: etchosts
+    run_once: true
+    delegate_to: localhost
+
+  - name: add to /etc/hosts
+    blockinfile:
+      block: "{{ etchosts.stdout }}"
+      path: /etc/hosts
+
+  - name: add to /etc/hosts
+    blockinfile:
+      block: "{{ etchosts.stdout }}"
+      path: /etc/hosts
+    run_once: true
+    delegate_to: localhost
+
+
+- hosts: mon-000
+  become: yes
+  tasks:
+  - name: add octopus repos
+    shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
+
+  - name: install octopus
+    environment:
+      CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
+    shell: /root/cephadm install ceph-common
+
+  - name: check ceph installed
+    stat:
+      path: /etc/ceph/ceph.conf
+    register: ceph_installed
+
+  - name: bootstrap octopus
+    environment:
+      CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
+    shell: /root/cephadm bootstrap --allow-fqdn-hostname --mon-ip {{ monitor_address }}
+    when: not ceph_installed.stat.exists
+
+  - name: config public network
+    shell: ceph config set global public_network 192.168.0.0/16
+
+  - name: config cluster_network
+    shell: ceph config set global cluster_network 192.168.0.0/16
+
+  - name: log to files
+    shell: ceph config set global log_to_file true
+
+  - name: log cluster to file
+    shell: ceph config set global mon_cluster_log_to_file true
+
+  - name: disable stderr logging
+    shell: ceph config set global log_to_stderr false
+
+  - name: disable stderr logging of cluster log
+    shell: ceph config set global mon_cluster_log_to_stderr false
+
+
+- hosts: mons mgrs osds mdss grafana-servers
+  become: yes
+  tasks:
+  - name: fetch ceph.pub
+    shell: cat /etc/ceph/ceph.pub
+    register: ceph_pub
+    delegate_to: mon-000
+    run_once: true
+
+  - name: register ceph.pub with hosts
+    lineinfile:
+      path: /root/.ssh/authorized_keys
+      line: "{{ ceph_pub.stdout }}"
+
+  - name: get hostname
+    shell: hostname --fqdn
+    register: myhostname
+
+  - name: add hostname to cephadm
+    shell: ceph orch host add "{{ myhostname.stdout }}" "{{ ansible_ssh_host }}"
+    delegate_to: mon-000
+
+  - name: label host
+    shell: ceph orch host label add "{{ myhostname.stdout }}" "{{ ceph_group }}"
+    delegate_to: mon-000
+
+
+- hosts: osds
+  become: yes
+  tasks:
+  - name: get hostname
+    shell: hostname --fqdn
+    register: myhostname
+
+#FIXME this is not idempotent!!
+  - name: add osd
+    shell: ceph orch daemon add osd "{{ myhostname.stdout }}:/dev/sdc"
+    delegate_to: mon-000
+    ignore_errors: yes
+
+
+- hosts: mon-000
+  become: yes
+  tasks:
+  - name: use labeled mons
+    shell: ceph orch apply mon label:mons
+
+  - name: use labeled mgrs
+    shell: ceph orch apply mgr label:mgrs
+
+# FIXME this does not work??
+#  - name: use available devices
+#    shell: ceph orch apply osd --all-available-devices
+
+  - name: use labeled mdss
+    shell: ceph orch apply mds all --placement=label:mdss
+
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: generate min config
+    shell: ceph config generate-minimal-conf
+    delegate_to: mon-000
+    register: minimal_config
+    run_once: true
+
+  - name: setup config
+    copy:
+      # yay ansible bug: https://github.com/ansible/ansible/issues/6077
+      content: "{{ minimal_config.stdout }}\n"
+      dest: /etc/ceph/ceph.conf
+      owner: root
+      group: root
+      mode: 0644
+
+
+- hosts: clients
+  become: yes
+  tasks:
+  - name: add octopus repos
+    shell: /root/cephadm add-repo --dev octopus
+
+  - name: install octopus
+    shell: /root/cephadm install ceph-common ceph-fuse

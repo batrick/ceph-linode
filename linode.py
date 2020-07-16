@@ -241,7 +241,8 @@ class CephLinode():
 
         with releasing(self.config_semaphore):
             if not instance.tags:
-                instance.tags = [self.group, machine['group']]
+                # N.B.: ideally we'd have a f"{machine['group']}" tag but different Linode users cannot share tags. Go figure.
+                instance.tags = [self.group, f"{self.group}-{machine['group']}"]
                 instance.save()
 
             if not instance.ips.ipv4.private:
@@ -334,35 +335,38 @@ class CephLinode():
 
         logging.info(f"{[f.result() for f in running]}")
 
+        linodes = []
         with open("ansible_inventory", mode = 'w') as f:
             groups = set([node['group'] for node in self.cluster['nodes']])
             for group in groups:
                 f.write(f"[{group}]\n")
+                group_tag = f"{self.group}-{group}"
                 for future in running:
                     linode = future.result()
-                    if group in linode.tags:
+                    if group_tag in linode.tags:
                         if socket.gethostname().endswith('.linode.com'):
                             # assumes deployment node is at same site as ceph cluster
                             ip = linode.ips.ipv4.private[0].address
                         else:
                             ip = linode.ips.ipv4.public[0].address
-                        f.write(f"\t{linode.label} ansible_ssh_host={ip} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{self.ssh_priv_keyfile}'")
+                        f.write(f"\t{linode.label} ansible_ssh_host={ip} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{self.ssh_priv_keyfile}' ceph_group='{group}'")
                         if group == 'mons':
                             f.write(f" monitor_address={ip}")
                         f.write("\n")
+                        l = {
+                          'id': linode.id,
+                          'label': linode.label,
+                          'ip_private': linode.ips.ipv4.private[0].address,
+                          'ip_public': linode.ips.ipv4.public[0].address,
+                          'group': linode.group,
+                          'ceph_group': group,
+                          'user': 'root',
+                          'key': self.ssh_priv_keyfile,
+                        }
+                        linodes.append(l)
 
         with open("linodes", mode = 'w') as f:
-            j = [{
-                'id': f.result().id,
-                'label': f.result().label,
-                'ip_private': f.result().ips.ipv4.private[0].address,
-                'ip_public': f.result().ips.ipv4.public[0].address,
-                'group': f.result().group,
-                'user': 'root',
-                'key': self.ssh_priv_keyfile,
-            } for f in running]
-            f.write(json.dumps(j))
-
+            f.write(json.dumps(linodes))
 
     @busy_retry()
     def _do_destroy(self):
@@ -412,6 +416,11 @@ class CephLinode():
 
                 for disk in node.disks:
                     disk.delete()
+                    changed = True
+
+                if node.tags:
+                    node.tags = []
+                    node.save()
                     changed = True
 
                 if not changed:

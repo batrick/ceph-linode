@@ -3,10 +3,10 @@
 set -e
 
 # client-000 is used to run smallfile master
-#clients=$(< linodes jq --raw-output 'map(select(.name | startswith("client"))) | map(select(.name != "client-000")) | map(.name) | join(",")')
-MAX_MDS=$(< linodes jq --raw-output 'map(select(.name | startswith("mds"))) | length')
+#clients=$(< linodes jq --raw-output 'map(select(.label | startswith("client"))) | map(select(.label != "client-000")) | map(.label) | join(",")')
+MAX_MDS=$(< linodes jq --raw-output 'map(select(.label | startswith("mds"))) | length')
 MAX_MDS=$((MAX_MDS-1)) # leave one for standby
-NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.name | startswith("client"))) | map(select(.name != "client-000")) | length')
+NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.label | startswith("client"))) | map(select(.label != "client-000")) | length')
 
 common_params="--same-dir N --response-times y --threads 16 --pause 2000 --files 1000 --hash-into-dirs Y --dirs-per-dir 3 --files-per-dir 1000 --file-size 4"
 oplist="create overwrite append read symlink stat mkdir rmdir chmod setxattr getxattr ls-l rename delete-renamed"
@@ -94,7 +94,7 @@ function main {
   exp="${RESULTS}/${EXPERIMENT}"
   mkdir -p -- "$exp"
 
-  run cp -av -- launch.log ansible_inventory linodes cluster.json group_vars "$exp/"
+  run cp -av --  ansible_inventory linodes cluster.json "$exp/"
 
   {
     run do_playbook playbooks/cephfs-setup.yml

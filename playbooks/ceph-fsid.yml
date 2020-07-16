@@ -1,0 +1,14 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: get ceph fsid
+    shell: ceph fsid
+    register: _fsid
+    run_once: true
+    delegate_to: mon-000
+
+  - name: set ceph fsid fact
+    set_fact:
+      fsid: "{{ _fsid.stdout }}"
