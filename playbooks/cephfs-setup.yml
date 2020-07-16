@@ -11,6 +11,21 @@
   - name: disable pg autoscaler
     shell: ceph config set global osd_pool_default_pg_autoscale_mode off
 
+- hosts: mds-000
+  become: yes
+  tasks:
+  - name: compute MDS cache memory limit
+    # (RAM*1024) / 2.5
+    shell: grep MemTotal /proc/meminfo | awk '{ print int(($2 * 1024) / 3) * 2}'
+    delegate_to: mds-000
+    run_once: true
+    register: mdsmem
+
+  - name: set MDS cache size
+    shell: ceph config set mds mds_cache_memory_limit "{{ mdsmem.stdout }}"
+    run_once: true
+    delegate_to: mon-000
+
 - hosts: all
   become: yes
   tasks:
