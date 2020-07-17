@@ -18,5 +18,5 @@
   - name: delete client.cephfs credential
     shell: "ceph auth del client.cephfs"
 
-  - name: destroy all pools
-    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output '.[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
+  - name: destroy all cephfs pools
+    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output 'select(.[] | test("^cephfs.*")) | .[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
