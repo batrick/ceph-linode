@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import glob
 import os
 import socket
@@ -7,8 +9,8 @@ import sys
 import time
 from contextlib import closing
 
-CLIENT_ADMIN_SOCKET_GLOB = "/var/run/ceph/ceph-client*.asok"
-MDS_ADMIN_SOCKET_GLOB = "/var/run/ceph/ceph-mds*.asok"
+CLIENT_ADMIN_SOCKET_GLOB = "/var/run/ceph/*/ceph-client*.asok"
+MDS_ADMIN_SOCKET_GLOB = "/var/run/ceph/*/ceph-mds*.asok"
 SC_CLK_TCK = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
 
 SCHEMA = """
@@ -81,14 +83,15 @@ class AdminSocket:
             creds = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i'))
             self.pid, self.uid, self.gid = struct.unpack('3i',creds)
             # Do something so we don't see an error: "AdminSocket: error reading request code: (0) Success"
-            sock.sendall("{\"prefix\": \"help\", \"format\": \"json\"}\x00")
+            sock.sendall(b"{\"prefix\": \"help\", \"format\": \"json\"}\x00")
             length = struct.unpack('>i', sock.recv(4))[0]
             sock.recv(length, socket.MSG_WAITALL)
 
     def cmd(self, c):
+        c = c.encode('utf-8')
         with closing(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)) as sock:
             sock.connect(self.path)
-            sock.sendall("{\"prefix\": \"%s\", \"format\": \"json\"}\x00" % c)
+            sock.sendall(b"{\"prefix\": \"%s\", \"format\": \"json\"}\x00" % c)
             length = struct.unpack('>i', sock.recv(4))[0]
             return sock.recv(length, socket.MSG_WAITALL)
 
