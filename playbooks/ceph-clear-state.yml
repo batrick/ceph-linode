@@ -36,7 +36,7 @@
 
   - name: get old log paths
     find:
-      paths: /var/log/ceph/
+      paths: "/var/log/ceph/{{ fsid }}"
       patterns: '*log*gz'
     register: log_paths
 

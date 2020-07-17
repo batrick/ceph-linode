@@ -1,12 +1,12 @@
-/var/log/ceph/*.log {
+/var/log/ceph/*/*.log {
     rotate 15
     compress
     sharedscripts
     postrotate
-        killall -q -1 ceph-mon ceph-mds ceph-osd ceph-fuse radosgw || true
+        killall --ns 0 -q -1 ceph-mon ceph-mgr ceph-mds ceph-osd ceph-fuse radosgw || true
     endscript
     missingok
     notifempty
-    su root ceph
+    su root root
     size 4G
 }

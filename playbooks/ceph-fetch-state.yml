@@ -5,7 +5,7 @@
   tasks:
   - name: get logs file names
     find:
-      paths: /var/log/ceph/
+      paths: "/var/log/ceph/{{ fsid }}"
       patterns: '*.log*gz'
     register: log_paths
 
