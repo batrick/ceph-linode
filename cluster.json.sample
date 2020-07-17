@@ -1,18 +1,20 @@
 {
   "region": "us-west",
   "image": "CentOS 8",
-  "type": 4096,
+  "type": 8192,
   "nodes": [
       {
         "count": 3,
         "prefix": "mon",
+        "swap_size": 16384,
         "group": "mons"
       },
       {
         "count": 3,
         "prefix": "osd",
-        "type": "1024",
-        "root_size": 4096,
+        "root_size": 32768,
+        "swap_size": 32768,
+        "type": 16384,
         "group": "osds"
       },
       {
@@ -23,6 +25,7 @@
       {
         "count": 1,
         "prefix": "mgr",
+        "swap_size": 16384,
         "group": "mgrs"
       },
       {
