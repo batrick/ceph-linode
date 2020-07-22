@@ -125,21 +125,6 @@
     shell: ceph orch host label add "{{ myhostname.stdout }}" "{{ ceph_group }}"
     delegate_to: mon-000
 
-
-- hosts: osds
-  become: yes
-  tasks:
-  - name: get hostname
-    shell: hostname --fqdn
-    register: myhostname
-
-#FIXME this is not idempotent!!
-  - name: add osd
-    shell: ceph orch daemon add osd "{{ myhostname.stdout }}:/dev/sdc"
-    delegate_to: mon-000
-    ignore_errors: yes
-
-
 - hosts: mon-000
   become: yes
   tasks:
@@ -149,13 +134,21 @@
   - name: use labeled mgrs
     shell: ceph orch apply mgr label:mgrs
 
-# FIXME this does not work??
-#  - name: use available devices
-#    shell: ceph orch apply osd --all-available-devices
+  - name: add osds
+    shell:
+      cmd: |
+        tee /dev/stderr <<EOF | ceph orch apply -i -
+        service_type: osd
+        service_id: default
+        placement:
+          label: osds
+        data_devices:
+          paths:
+            - /dev/sdc
+        EOF
 
   - name: use labeled mdss
     shell: ceph orch apply mds all --placement=label:mdss
-
 
 - hosts: all
   become: yes
