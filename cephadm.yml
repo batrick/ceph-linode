@@ -180,7 +180,7 @@
   become: yes
   tasks:
   - name: add octopus repos
-    shell: /root/cephadm add-repo --dev octopus
+    shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
 
   - name: install octopus
     shell: /root/cephadm install ceph-common ceph-fuse
