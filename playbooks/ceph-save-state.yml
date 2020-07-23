@@ -9,6 +9,9 @@
   - name: save status
     shell: ceph status > status-$(date '+%Y-%m-%d-%H-%M').txt
 
+  - name: save osd dump
+    shell: ceph osd dump > osd_dump-$(date '+%Y-%m-%d-%H-%M').txt
+
   - name: save osd tree
     shell: ceph osd tree > osd_tree-$(date '+%Y-%m-%d-%H-%M').txt
 
