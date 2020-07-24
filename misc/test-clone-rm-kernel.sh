@@ -2,13 +2,6 @@
 
 set -ex
 
-N="$1"
-if [ -z "$N" ]; then
-    exit 1
-fi
-
-MAX_MDS="$2"
-
 function do_clone_rm_kernel {
     local c="$1"
     local T="$(mktemp -d -p "." test.XXXXXX)"
@@ -28,7 +21,7 @@ function do_clone_rm_kernel {
     rmdir "$T"
 }
 
-{
+function main {
     count=0
     while true; do
         if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
@@ -40,11 +33,51 @@ function do_clone_rm_kernel {
         fi
     done
 
-    mkdir -p /cephfs/destinations
-    pushd /cephfs/destinations
-    for ((i = 0; i < N; ++i)); do
+    mkdir -p /cephfs/sources
+    pushd /cephfs/sources
+    if [ "$DISTRIBUTED" ]; then
+        setfattr -n ceph.dir.pin -v 0 .
+        setfattr -n ceph.dir.pin.distributed -v 1 .
+    fi
+    for ((i = 0; i < COUNT; ++i)); do
         (do_clone_rm_kernel "$i") &> /root/client-output-$i.txt &
     done
     wait
     popd
-} > /root/client-output.txt 2>&1
+}
+
+ARGUMENTS='--options d,h,p: --long distributed,help,pin:'
+NEW_ARGUMENTS=$(getopt $ARGUMENTS -- "$@")
+eval set -- "$NEW_ARGUMENTS"
+
+function usage {
+    printf "%s: [--distributed|--pin=<max_mds>] <count>\n" "$0"
+}
+
+while [ "$#" -ge 0 ]; do
+    case "$1" in
+        -d|--distributed)
+            DISTRIBUTED=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit
+            ;;
+        -p|--pin)
+            shift
+            PIN=1
+            MAX_MDS="$1"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+
+COUNT="$1"
+shift
+
+main |& tee client-output.txt

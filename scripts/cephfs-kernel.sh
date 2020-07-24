@@ -6,8 +6,6 @@ MAX_MDS=$(< linodes jq --raw-output 'map(select(.label | startswith("mds"))) | l
 MAX_MDS=$((MAX_MDS-1)) # leave one for standby
 NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.label | startswith("client"))) | length')
 
-TEST=kernel
-
 ###
 
 # may be necessary for ansible with >25 forks
@@ -43,7 +41,7 @@ function nclients {
 }
 
 function do_test {
-  run ans -m shell -a '/root/kernel_untar_build.sh' "$1"
+  run ans -m shell -a 'chdir=/root /root/kernel_untar_build.sh --distributed 1' "$1"
 }
 
 function do_tests {
@@ -51,27 +49,23 @@ function do_tests {
   i="$2"
   max_mds="$3"
   num_clients="$4"
-  for size in 1GB 2GB; do
-    instance="$(printf 'max_mds:%02d/num_clients:%02d/i:%02d/%s' "$max_mds" "$num_clients" "$i" "$size")"
-    dir="${exp}/results/${instance}"
-    run mkdir -p "$dir/${TEST}"
-    printf '%d\n' "$i" > "$dir"/i
-    printf '%d\n' "$max_mds" > "$dir"/max_mds
-    printf '%d\n' "$num_clients" > "$dir"/num_clients
-    printf '%s\n' "$instance" > "$dir"/instance
-    printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
-    run do_playbook playbooks/cephfs-pre-test.yml
+  instance="$(printf 'max_mds:%02d/num_clients:%02d/i:%02d/%s' "$max_mds" "$num_clients" "$i" "$size")"
+  dir="${exp}/results/${instance}"
+  run mkdir -p "$dir/"
+  printf '%d\n' "$i" > "$dir"/i
+  printf '%d\n' "$max_mds" > "$dir"/max_mds
+  printf '%d\n' "$num_clients" > "$dir"/num_clients
+  printf '%s\n' "$instance" > "$dir"/instance
+  printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
+  run do_playbook playbooks/cephfs-pre-test.yml
 
-    run ans -m shell -a "ceph config set mds mds_cache_memory_limit $size" mon-000
+  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/pre-df"
+  date +%s > "$dir/start"
+  run do_test "$(nclients "$num_clients")" |& tee "$dir/log"
+  date +%s > "$dir/end"
+  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/post-df"
 
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/${TEST}/pre-df"
-    date +%s > "$dir/${TEST}/start"
-    run do_test "$(nclients "$num_clients")" |& tee "$dir/${TEST}/log"
-    date +%s > "$dir/${TEST}/end"
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/${TEST}/post-df"
-
-    run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
-  done
+  run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
 }
 
 function main {

@@ -25,6 +25,12 @@
   - name: disable pg autoscaler
     shell: ceph config set global osd_pool_default_pg_autoscale_mode off
 
+  - name: allow distributed ephemeral pins
+    shell: ceph config set mds mds_export_ephemeral_distributed true
+
+  - name: allow random ephemeral pins
+    shell: ceph config set mds mds_export_ephemeral_random true
+
 - hosts: mds-000
   become: yes
   tasks:
@@ -114,7 +120,7 @@
 
   - name: install dependencies
     yum:
-      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml,attr
+      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml,attr,wget,openssl-devel,elfutils-libelf-devel
       state: present
 
   - name: install Development tools

@@ -8,21 +8,21 @@ if [ -z "$N" ]; then
 fi
 
 function do_kernel_build {
-    T=$(mktemp -d -p /cephfs)
+    T=$(mktemp -d -p .)
     (
         cd "$T"
-        wget -q http://download.ceph.com/qa/linux-4.0.5.tar.xz
 
-        tar Jxvf linux*.xz
+        tar xzvf "$LINUX"
         cd linux*
         make defconfig
-        make
+        n="$(nproc)"
+        make -j$((n+1))
     )
 
     rm -rfv "$T"
 }
 
-{
+function main {
     count=0
     while true; do
         if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
@@ -34,8 +34,54 @@ function do_kernel_build {
         fi
     done
 
-    for ((i = 0; i < N; ++i)); do
-        do_kernel_build &> /root/client-output-$i.txt &
+    wget -q http://download.ceph.com/qa/linux-5.4.tar.gz
+    LINUX=$(realpath linux-5.4.tar.gz)
+
+    mkdir -p /cephfs/kernels
+    pushd /cephfs/kernels
+    if [ "$DISTRIBUTED" ]; then
+        setfattr -n ceph.dir.pin -v 0 .
+        setfattr -n ceph.dir.pin.distributed -v 1 .
+    fi
+    for ((i = 0; i < COUNT; ++i)); do
+        (do_kernel_build "$i") &> /root/client-output-$i.txt &
     done
     wait
-} > /root/client-output.txt 2>&1
+    popd
+}
+
+ARGUMENTS='--options d,h,p: --long distributed,help,pin:'
+NEW_ARGUMENTS=$(getopt $ARGUMENTS -- "$@")
+eval set -- "$NEW_ARGUMENTS"
+
+function usage {
+    printf "%s: [--distributed|--pin=<max_mds>] <count>\n" "$0"
+}
+
+while [ "$#" -ge 0 ]; do
+    case "$1" in
+        -d|--distributed)
+            DISTRIBUTED=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit
+            ;;
+        -p|--pin)
+            shift
+            PIN=1
+            MAX_MDS="$1"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+
+COUNT="$1"
+shift
+
+main |& tee client-output.txt

@@ -97,7 +97,7 @@ function do_test {
     ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
     run ans --module-name=copy --args="src=misc/test-clone-rm-kernel.sh dest=/root/ owner=root group=root mode=755" clients
     pretest "$D" clients
-    run ans -m shell -a "/root/test-clone-rm-kernel.sh $(( count > 32 ? count/32 : 1 )) $max_mds" "$(nclients "$count" 32)"
+    run ans -m shell -a "/root/test-clone-rm-kernel.sh --distributed $(( count > NUM_CLIENTS ? count/NUM_CLIENTS : 1 ))" "$(nclients "$count" NUM_CLIENTS)"
     posttest "$D" clients
   } |& tee "$D"/log
 }
