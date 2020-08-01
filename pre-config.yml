@@ -27,6 +27,24 @@
 - hosts: all
   become: yes
   tasks:
+  - name: create hosts from inventory
+    shell: ./misc/generate-hosts.py linodes
+    register: etchosts
+    run_once: true
+    delegate_to: localhost
+
+  - name: add to /etc/hosts
+    blockinfile:
+      block: "{{ etchosts.stdout }}"
+      path: /etc/hosts
+
+  - name: add to /etc/hosts
+    blockinfile:
+      block: "{{ etchosts.stdout }}"
+      path: /etc/hosts
+    run_once: true
+    delegate_to: localhost
+
   # coredump capture setup
   - name: create crash directory
     file:

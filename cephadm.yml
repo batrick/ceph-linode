@@ -51,25 +51,6 @@
       group: root
       mode: 0755
 
-  - name: create hosts from inventory
-    shell: ./misc/generate-hosts.py linodes
-    register: etchosts
-    run_once: true
-    delegate_to: localhost
-
-  - name: add to /etc/hosts
-    blockinfile:
-      block: "{{ etchosts.stdout }}"
-      path: /etc/hosts
-
-  - name: add to /etc/hosts
-    blockinfile:
-      block: "{{ etchosts.stdout }}"
-      path: /etc/hosts
-    run_once: true
-    delegate_to: localhost
-
-
 - hosts: mon-000
   become: yes
   tasks:
