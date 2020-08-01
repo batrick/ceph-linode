@@ -23,6 +23,8 @@ The repository has a number of utilities roughly organized as:
 
 * `linode.py`: script to rapidly create/configure/nuke/destroy Linodes.
 
+* `cluster.json`: the description of the cluster to deploy.
+
 * `pre-config.yml`: an ansible playbook to pre-configure Linodes with useful
    packages or utilities prior to installing Ceph.
 
