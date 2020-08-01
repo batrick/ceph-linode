@@ -92,11 +92,13 @@ The repository has a number of utilities roughly organized as:
   git clone https://github.com/batrick/ceph-linode.git
   ```
 
-* Copy `cluster.json.sample` to `cluster.json` and modify it to have the desired
-  count and Linode plan for each daemon type. If you're planning to do testing
-  with CephFS, it is recommend to have 3+ MDS, 2+ clients, and 8+ OSDs. The
-  ansible playbook `playbooks/cephfs-setup.yml` will configure 4 OSDs to be
-  dedicated for the metadata pool.
+* Copy `cluster.json.sample` to `cluster.json` and modify it to have the
+  desired count and Linode plan for each daemon type. If you're planning to do
+  testing with CephFS, it is recommend to have 3+ MDS, 2+ clients, and 8+ OSDs.
+  The ansible playbook `playbooks/cephfs-setup.yml` will configure 4 OSDs to be
+  dedicated for the metadata pool. Keep in mind that the use of containerized
+  Ceph daemons requires more memory than bare-metal installations. It is
+  recommended to use at least 4GB for all daemons. OSDs require at least 8GB.
 
 > :fire: **Note** :fire: The OSD memory target is always at least 4GB, otherwise set appropriately and automatically based on the available memory on the OSD. If you use smaller OSDs (4GB or smaller), then you must configure the memory target manually via changing the Ceph config.
 
