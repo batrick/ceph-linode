@@ -12,6 +12,13 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+# Configure iptables on the cluster to only allow local private network
+# traffic. We don't want the internet to have access to the cluster services.
+# Although Ceph **is** configured to have its cluster_network/public_network on
+# the Linode private LAN, some services still listen on all interfaces
+# including grafana, prometheus, and the crash daemons.
+
 - hosts: all
   become: yes
   tasks:

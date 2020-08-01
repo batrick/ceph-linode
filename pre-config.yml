@@ -12,6 +12,16 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+# This playbook does some basic pre-configuration of the Linodes prior to Ceph installation. In particular, it:
+#
+# - updates packages
+# - sets up log rotation
+# - configures the core dump location for easy retrieval via other ansible playbooks
+# - tries to wipe the /dev/sdc device on OSDs (only works if the OSD is down);
+#   this is necessary after nuking the cluster as Linode does not wipe the disks
+#   immediately after deletion.
+
 ---
 
 - hosts: all
