@@ -4,7 +4,22 @@ The repository has a collection of scripts that automate the deployment of Ceph
 within Linode. The primary use-case for this work is to allow rapid testing of
 Ceph at scale.
 
-The repository has a number of utilities rougly organized as:
+## Why Linode?
+
+Linode is a popular virtual private server (VPS) provider, but one of several. The primary reasons for selecting Linode were
+
+* **Price.** Linode is generally very affordable compared to competition.
+
+* **SSD local storage at no extra cost.** Obviously, testing Ceph requires the use of OSDs that require local devices. The SSDs on Linode are enterprise quality and well provisioned.
+
+* **Friendly API.** Most cloud providers have an API today for deployment. At the time I first worked on this project, there were not many that did.
+
+Want to add another cloud provider? I'm all-ears. Please talk to me by email
+(see commit history for email address).
+
+## Repository Organization
+
+The repository has a number of utilities roughly organized as:
 
 * `linode.py`: script to rapidly create/configure/nuke/destroy Linodes.
 
