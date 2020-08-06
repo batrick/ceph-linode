@@ -477,16 +477,22 @@ class CephLinode():
         self._parse_common_options(**kwargs);
         raise NotImplementedError()
 
+    def types(self, **kwargs):
+        logging.info(f"types {kwargs}")
+        for t in self.client.linode.types():
+            print(f"{t.label}: cpu={t.vcpus} memory={t.memory} gpus={t.gpus} disk={t.disk}")
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-k', '--key', dest='key', help='Linode API Key')
     subparsers = parser.add_subparsers(dest='cmd')
 
-    l = subparsers.add_parser('launch')
-    d = subparsers.add_parser('destroy')
-    n = subparsers.add_parser('nuke')
-    w = subparsers.add_parser('wait')
-    l = subparsers.add_parser('list')
+    subparsers.add_parser('launch')
+    subparsers.add_parser('destroy')
+    subparsers.add_parser('nuke')
+    subparsers.add_parser('wait')
+    subparsers.add_parser('list')
+    subparsers.add_parser('types')
     kwargs = vars(parser.parse_args())
 
     L = CephLinode()
