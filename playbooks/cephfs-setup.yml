@@ -22,9 +22,6 @@
   - name: allow pool deletion
     shell: ceph config set mon mon_allow_pool_delete true
 
-  - name: disable pg autoscaler
-    shell: ceph config set global osd_pool_default_pg_autoscale_mode off
-
   - name: allow distributed ephemeral pins
     shell: ceph config set mds mds_export_ephemeral_distributed true
 
@@ -71,8 +68,6 @@
 - hosts: mon-000
   become: yes
   vars:
-    target_pgs_per_osd: 128
-    replicas: 3
     dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3
   tasks:
   - name: get osds

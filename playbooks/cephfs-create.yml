@@ -17,33 +17,18 @@
 - hosts: mon-000
   become: yes
   vars:
-    target_pgs_per_osd: 128
+    data_min_pgs_per_osd: 128
     replicas: 3
     dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3
   tasks:
-  - name: get ssd-meta count
-    shell: ceph -f json osd crush dump | jq '.devices | map(select(.class == "ssd-meta")) | length'
-    register: meta_osd
-
-  - name: get ssd count
-    shell: ceph -f json osd crush dump | jq '.devices | map(select(.class == "ssd")) | length'
-    register: data_osd
-
-  - name: set pg lg
-    set_fact:
-      metadata_pool_pgs_lg: "{{ ( ((meta_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
-      data_pool_pgs_lg: "{{ ( ( (data_osd.stdout|int) * (target_pgs_per_osd|int) / (replicas|int)) | log(2) | round(0, 'floor') ) + 1 }}"
-
-  - name: set pg count
-    set_fact:
-      metadata_pool_pgs: "{{ 2 | pow(metadata_pool_pgs_lg|int) | int}}"
-      data_pool_pgs: "{{ 2 | pow(data_pool_pgs_lg|int) | int }}"
-
   - name: create fs metadata pool
-    shell: "ceph osd pool create cephfs_metadata {{ metadata_pool_pgs }} {{ metadata_pool_pgs }} replicated class-ssd-meta {{ replicas }}"
+    shell: "ceph osd pool create cephfs_metadata replicated class-ssd-meta --size={{ replicas }}"
 
   - name: create fs data pool
-    shell: "ceph osd pool create cephfs_data {{ data_pool_pgs }} {{ data_pool_pgs }} replicated class-ssd {{ replicas }}"
+    shell: "ceph osd pool create cephfs_data {{ data_min_pgs_per_osd }} {{ data_min_pgs_per_osd }} replicated class-ssd --size={{ replicas }} --pg_num_min={{ data_min_pgs_per_osd }}"
+
+  - name: configure data pool target_size_ratio
+    shell: "ceph osd pool set cephfs_data target_size_ratio 0.9"
 
   - name: create fs
     shell: "ceph fs new cephfs cephfs_metadata cephfs_data"
