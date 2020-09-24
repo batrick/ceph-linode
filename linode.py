@@ -365,7 +365,7 @@ class CephLinode():
                             ip = linode.ips.ipv4.public[0].address
                         f.write(f"\t{linode.label} ansible_ssh_host={ip} ansible_ssh_port=22 ansible_ssh_user='root' ansible_ssh_private_key_file='{self.ssh_priv_keyfile}' ceph_group='{group}'")
                         if group == 'mons':
-                            f.write(f" monitor_address={ip}")
+                            f.write(f" monitor_address={linode.ips.ipv4.private[0].address}")
                         f.write("\n")
                         l = {
                           'id': linode.id,
