@@ -24,6 +24,7 @@
     register: log_paths
 
   - name: create backup dirs
+    become: no
     delegate_to: localhost
     file:
       path: "{{ instance }}/{{ inventory_hostname }}/{{ item }}"

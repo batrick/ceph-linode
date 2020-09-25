@@ -26,6 +26,7 @@
   become: yes
   tasks:
   - name: fetch cephadm
+    become: no
     delegate_to: localhost
     register: cephadm
     run_once: true

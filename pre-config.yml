@@ -28,6 +28,7 @@
   become: yes
   tasks:
   - name: create hosts from inventory
+    become: no
     shell: ./misc/generate-hosts.py linodes
     register: etchosts
     run_once: true
@@ -42,6 +43,7 @@
     blockinfile:
       block: "{{ etchosts.stdout }}"
       path: /etc/hosts
+    ignore_errors: yes
     run_once: true
     delegate_to: localhost
 
