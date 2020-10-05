@@ -114,7 +114,7 @@
   - name: use labeled mdss
     shell: ceph orch apply mds all --placement=label:mdss
 
-- hosts: mons mgrs osds mdss grafana-servers
+- hosts: mons mgrs osds mdss nfs-ganeshas grafana-servers
   become: yes
   tasks:
   - name: fetch ceph.pub
@@ -157,7 +157,6 @@
       owner: root
       group: root
       mode: 0644
-
 
 - hosts: clients
   become: yes
