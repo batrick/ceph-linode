@@ -64,6 +64,16 @@
       jump: ACCEPT
       comment: Accept new SSH connections.
 
+  - name: accept nfs connections
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      destination_port: 2049
+      ctstate: NEW
+      syn: match
+      jump: ACCEPT
+      comment: Accept new NFS connections.
+
   - name: accept existing connections
     iptables:
       chain: INPUT
