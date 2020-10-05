@@ -15,7 +15,7 @@
 - hosts: clients
   become: yes
   tasks:
-    - name: umount kcephfs
+    - name: umount /cephfs
       mount:
         opts: -f -l
         state: unmounted

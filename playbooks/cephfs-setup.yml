@@ -62,7 +62,7 @@
     copy: src=../misc/htoprc dest=/root/.config/htop/ owner=root group=root mode=0644
 
 # Make sure /cephfs is unmounted if it exists otherwise the check that creates /mnt will hang.
-- import_playbook: kernel-umount.yml
+- import_playbook: cephfs-umount.yml
 - import_playbook: cephfs-destroy.yml
 
 - hosts: mon-000

@@ -16,7 +16,7 @@
 
 - import_playbook: ceph-fsid.yml
 
-- import_playbook: kernel-umount.yml
+- import_playbook: cephfs-umount.yml
 
 - import_playbook: ceph-clear-state.yml
 
