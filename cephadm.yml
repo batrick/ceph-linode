@@ -92,6 +92,27 @@
   - name: disable stderr logging of cluster log
     shell: ceph config set global mon_cluster_log_to_stderr false
 
+  - name: use labeled mons
+    shell: ceph orch apply mon label:mons
+
+  - name: use labeled mgrs
+    shell: ceph orch apply mgr label:mgrs
+
+  - name: add osds
+    shell:
+      cmd: |
+        tee /dev/stderr <<EOF | ceph orch apply -i -
+        service_type: osd
+        service_id: default
+        placement:
+          label: osds
+        data_devices:
+          paths:
+            - /dev/sdc
+        EOF
+
+  - name: use labeled mdss
+    shell: ceph orch apply mds all --placement=label:mdss
 
 - hosts: mons mgrs osds mdss grafana-servers
   become: yes
@@ -118,31 +139,6 @@
   - name: label host
     shell: ceph orch host label add "{{ myhostname.stdout }}" "{{ ceph_group }}"
     delegate_to: mon-000
-
-- hosts: mon-000
-  become: yes
-  tasks:
-  - name: use labeled mons
-    shell: ceph orch apply mon label:mons
-
-  - name: use labeled mgrs
-    shell: ceph orch apply mgr label:mgrs
-
-  - name: add osds
-    shell:
-      cmd: |
-        tee /dev/stderr <<EOF | ceph orch apply -i -
-        service_type: osd
-        service_id: default
-        placement:
-          label: osds
-        data_devices:
-          paths:
-            - /dev/sdc
-        EOF
-
-  - name: use labeled mdss
-    shell: ceph orch apply mds all --placement=label:mdss
 
 - hosts: all
   become: yes
