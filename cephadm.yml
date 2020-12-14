@@ -16,8 +16,9 @@
   gather_facts: no
   tasks:
   - set_fact:
-      CEPHADM_IMAGE: ceph/daemon-base:latest-octopus-devel
-      CEPHADM_REPO: --dev octopus
+      RELEASE: master
+      CEPHADM_IMAGE: ceph/daemon-base:latest-master-devel
+      CEPHADM_REPO: --dev master
 
 - name: preconfigure linodes
   import_playbook: pre-config.yml
@@ -34,7 +35,7 @@
       force: yes
       mode: 0755
       return_content: yes
-      url: https://github.com/ceph/ceph/raw/octopus/src/cephadm/cephadm
+      url: "https://github.com/ceph/ceph/raw/{{ RELEASE }}/src/cephadm/cephadm"
 
   - name: distribute cephadm
     copy:
@@ -55,10 +56,10 @@
 - hosts: mon-000
   become: yes
   tasks:
-  - name: add octopus repos
+  - name: "add {{ RELEASE }} repos"
     shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
 
-  - name: install octopus
+  - name: "install {{ RELEASE }}"
     environment:
       CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
     shell: /root/cephadm install ceph-common
@@ -68,7 +69,7 @@
       path: /etc/ceph/ceph.conf
     register: ceph_installed
 
-  - name: bootstrap octopus
+  - name: "bootstrap {{ RELEASE }}"
     environment:
       CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
     shell: /root/cephadm bootstrap --allow-fqdn-hostname --mon-ip {{ monitor_address }}
@@ -166,8 +167,8 @@
 - hosts: clients
   become: yes
   tasks:
-  - name: add octopus repos
+  - name: "add {{ RELEASE }} repos"
     shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
 
-  - name: install octopus
+  - name: "install {{ RELEASE }}"
     shell: /root/cephadm install ceph-common ceph-fuse
