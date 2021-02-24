@@ -84,14 +84,14 @@ The repository has a number of utilities roughly organized as:
   **Fedora**:
 
     ```bash
-    dnf install screen git ansible python3-notario python3-pip python3-netaddr jq rsync htop wget
+    dnf install git ansible python3-notario python3-pip python3-netaddr jq rsync htop wget
     pip3 install linode_api4
     ```
 
   **Arch Linux**:
 
     ```bash
-    pacman -Syu screen git ansible python3-netaddr python3-pip jq rsync htop wget
+    pacman -Syu git ansible python3-netaddr python3-pip jq rsync htop wget
     pip3 install notario linode_api4
     ```
 
