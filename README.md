@@ -72,6 +72,15 @@ The repository has a number of utilities roughly organized as:
 
 * Install necessary packages:
 
+  **CentOS Stream**:
+
+    ```bash
+    dnf install epel-release
+    dnf update
+    dnf install git ansible python3-pip python3-netaddr jq rsync wget htop
+    pip3 install linode_api4 notario
+    ```
+
   **Fedora**:
 
     ```bash
