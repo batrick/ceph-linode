@@ -1,6 +1,6 @@
 {
   "region": "us-west",
-  "image": "CentOS 8",
+  "image": "CentOS Stream",
   "type": 8192,
   "nodes": [
       {
