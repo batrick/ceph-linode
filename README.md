@@ -111,6 +111,8 @@ The repository has a number of utilities roughly organized as:
 
 > :fire: **Note** :fire: The OSD memory target is always at least 4GB, otherwise set appropriately and automatically based on the available memory on the OSD. If you use smaller OSDs (4GB or smaller), then you must configure the memory target manually via changing the Ceph config.
 
+* Configure which Ceph version you want to deploy in `settings.yml`.
+
 * Start using:
 
     ```bash

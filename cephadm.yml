@@ -12,13 +12,8 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <https://www.gnu.org/licenses/>.---
 
-- hosts: all
-  gather_facts: no
-  tasks:
-  - set_fact:
-      RELEASE: master
-      CEPHADM_IMAGE: ceph/daemon-base:latest-master-devel
-      CEPHADM_REPO: --dev master
+- name: import configurations
+  import_playbook: settings.yml
 
 - name: preconfigure linodes
   import_playbook: pre-config.yml
@@ -60,8 +55,6 @@
     shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
 
   - name: "install {{ RELEASE }}"
-    environment:
-      CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
     shell: /root/cephadm install ceph-common
 
   - name: check ceph installed
@@ -70,8 +63,6 @@
     register: ceph_installed
 
   - name: "bootstrap {{ RELEASE }}"
-    environment:
-      CEPHADM_IMAGE: "{{ CEPHADM_IMAGE }}"
     shell: /root/cephadm bootstrap --allow-fqdn-hostname --mon-ip {{ monitor_address }}
     when: not ceph_installed.stat.exists
 
