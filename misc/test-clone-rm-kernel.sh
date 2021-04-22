@@ -36,7 +36,6 @@ function main {
     mkdir -p /cephfs/sources
     pushd /cephfs/sources
     if [ "$DISTRIBUTED" ]; then
-        setfattr -n ceph.dir.pin -v 0 .
         setfattr -n ceph.dir.pin.distributed -v 1 .
     fi
     for ((i = 0; i < COUNT; ++i)); do

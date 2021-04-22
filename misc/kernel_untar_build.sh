@@ -40,7 +40,6 @@ function main {
     mkdir -p /cephfs/kernels
     pushd /cephfs/kernels
     if [ "$DISTRIBUTED" ]; then
-        setfattr -n ceph.dir.pin -v 0 .
         setfattr -n ceph.dir.pin.distributed -v 1 .
     fi
     for ((i = 0; i < COUNT; ++i)); do
