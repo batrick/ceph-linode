@@ -16,7 +16,7 @@ GRAPH="mds-auth-subtrees.eps"
 WITH
     subtrees AS (
         SELECT timestamp, json_extract(J.value, '$.is_auth') AS is_auth,(CASE WHEN json_extract(J.value, '$.dir.path') = '' THEN '/' ELSE json_extract(J.value, '$.dir.path') END) AS path
-            FROM MDSStatus, json_each(CASE WHEN MDSStatus.subtrees LIKE '"mds_not_active"%' THEN '[]' ELSE MDSStatus.subtrees END) AS J
+            FROM MDSStatus, json_each(CASE WHEN MDSStatus.subtrees LIKE '"mds_not_active"%' OR MDSStatus.subtrees LIKE '%Function not implemented%' THEN '[]' ELSE MDSStatus.subtrees END) AS J
     ),
     public_subtrees AS (
         SELECT timestamp, is_auth, path
