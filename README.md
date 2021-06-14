@@ -117,7 +117,7 @@ The repository has a number of utilities roughly organized as:
 
     ```bash
     python3 linode.py launch
-    source ansible-env.sh
+    source ansible-env.bash
     do_playbook cephadm.yml
     ```
 
