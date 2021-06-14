@@ -84,8 +84,10 @@
   - name: disable stderr logging of cluster log
     shell: ceph config set global mon_cluster_log_to_stderr false
 
+  - name: distribute ceph.conf by default
+    shell: ceph config set mgr mgr/cephadm/manage_etc_ceph_ceph_conf true
 
-- hosts: mons mgrs osds mdss grafana-servers
+- hosts: mons mgrs osds mdss grafana-servers clients
   become: yes
   tasks:
   - name: fetch ceph.pub
@@ -104,11 +106,7 @@
     register: myhostname
 
   - name: add hostname to cephadm
-    shell: ceph orch host add "{{ myhostname.stdout }}" "{{ ansible_ssh_host }}"
-    delegate_to: mon-000
-
-  - name: label host
-    shell: ceph orch host label add "{{ myhostname.stdout }}" "{{ ceph_group }}"
+    shell: ceph orch host add "{{ myhostname.stdout }}" "{{ ansible_ssh_host }}" --labels {{ ceph_group }}{{ ',_no_schedule' if 'clients' in group_names else '' }}{{ ',_admin' if 'mons' in group_names else '' }}
     delegate_to: mon-000
 
 - hosts: mon-000
@@ -136,25 +134,6 @@
   - name: use labeled mdss
     shell: ceph orch apply mds all --placement=label:mdss
     when: groups['mdss'] | default([]) | length > 0
-
-- hosts: all
-  become: yes
-  tasks:
-  - name: generate min config
-    shell: ceph config generate-minimal-conf
-    delegate_to: mon-000
-    register: minimal_config
-    run_once: true
-
-  - name: setup config
-    copy:
-      # yay ansible bug: https://github.com/ansible/ansible/issues/6077
-      content: "{{ minimal_config.stdout }}\n"
-      dest: /etc/ceph/ceph.conf
-      owner: root
-      group: root
-      mode: 0644
-
 
 - hosts: clients
   become: yes
