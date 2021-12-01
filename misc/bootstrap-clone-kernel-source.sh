@@ -9,7 +9,7 @@ function bootstrap_clone_kernel {
 {
     count=0
     while true; do
-        if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
+        if systemctl status ceph-fuse@-perf || [ "$(stat -f --format=%t /perf)" = c36400 ]; then
             break # shell ! is stupid, can't move to while
         fi
         sleep 5
@@ -18,6 +18,6 @@ function bootstrap_clone_kernel {
         fi
     done
 
-    pushd /cephfs
+    pushd /perf
     bootstrap_clone_kernel
 } > /root/client-output.txt 2>&1

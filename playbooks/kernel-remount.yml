@@ -16,4 +16,4 @@
   become: yes
   tasks:
     - name: remount kcephfs
-      shell: mount -o remount /cephfs
+      shell: mount -o remount /perf

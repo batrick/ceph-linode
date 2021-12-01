@@ -19,14 +19,14 @@
       mount:
         opts: -f -l
         state: unmounted
-        path: /cephfs
+        path: /perf
 
     - name: set mon_addrs fact
       set_fact:
         mon_addrs: "{{ groups['mons'] | map('extract', hostvars, ['ansible_ssh_host']) | join(',') }}"
 
     - name: get client key secret
-      shell: ceph auth print-key client.cephfs
+      shell: ceph auth print-key client.perf
       delegate_to: "{{ groups['mons'][0] }}"
       register: key
       run_once: true
@@ -35,7 +35,7 @@
       mount:
         boot: no
         fstype: ceph
-        opts: "secret={{ key.stdout }},name=cephfs,norequire_active_mds"
-        path: /cephfs
+        opts: "secret={{ key.stdout }},name=perf,norequire_active_mds"
+        path: /perf
         src: "{{ mon_addrs }}:/"
         state: mounted

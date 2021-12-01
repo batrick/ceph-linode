@@ -2,9 +2,9 @@
 
 set -e
 
-MAX_MDS=$(< linodes jq --raw-output 'map(select(.label | startswith("mds"))) | length')
+MAX_MDS=8
 MAX_MDS=$((MAX_MDS-1)) # leave one for standby
-NUM_CLIENTS=$(< linodes jq --raw-output 'map(select(.label | startswith("client"))) | length')
+NUM_CLIENTS=64
 
 ###
 
@@ -59,11 +59,11 @@ function do_tests {
   printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
   run do_playbook playbooks/cephfs-pre-test.yml
 
-  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/pre-df"
+  run ans -m shell -a 'df -h /perf/' clients &> "$dir/pre-df"
   date +%s > "$dir/start"
   run do_test "$(nclients "$num_clients")" |& tee "$dir/log"
   date +%s > "$dir/end"
-  run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/post-df"
+  run ans -m shell -a 'df -h /perf/' clients &> "$dir/post-df"
 
   run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
 }
@@ -72,19 +72,19 @@ function main {
   exp="${RESULTS}/${EXPERIMENT}"
   mkdir -p -- "$exp"
 
-  run cp -av -- ansible_inventory linodes cluster.json "$exp/"
+  run cp -av -- ansible_inventory "$exp/"
 
   {
     run do_playbook playbooks/cephfs-setup.yml
     run ans --module-name=copy --args="src=misc/kernel_untar_build.sh dest=/root/ owner=root group=root mode=755" clients
-    for ((max_mds = 1; max_mds <= MAX_MDS; ++max_mds)); do
-      for ((num_clients = 1; num_clients <= NUM_CLIENTS; num_clients*=2)); do
-        if [[ $max_mds == 1 && $num_clients > 4 ]]; then
+    for ((max_mds = 1; max_mds <= MAX_MDS; max_mds*=2)); do
+      for ((num_clients = 8; num_clients <= NUM_CLIENTS; num_clients*=2)); do
+        if [[ $max_mds == 1 && $num_clients > 8 ]]; then
           break
         fi
         for ((i = 0; i < 2; i++)); do
           run do_playbook playbooks/cephfs-reset.yml
-          ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
+          ans -m shell -a "ceph fs set perf max_mds $max_mds" mon-000
           run do_tests "$exp" "$i" "$max_mds" "$num_clients" || true
         done
       done

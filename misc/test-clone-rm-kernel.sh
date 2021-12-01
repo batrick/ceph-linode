@@ -10,8 +10,8 @@ function do_clone_rm_kernel {
         setfattr -n ceph.dir.pin -v $(( RANDOM % MAX_MDS )) .
     fi
     # pick a random linux clone (not bootstrap)
-    stat /cephfs/sources
-    local source="$(find /cephfs/sources -maxdepth 1 -print0 | sort -z -R | sed -z '1q')"
+    stat /perf/sources
+    local source="$(find /perf/sources -maxdepth 1 -print0 | sort -z -R | sed -z '1q')"
     date '+%s' > "/root/client-$c-start.time.txt"
     git clone "file://$source" linux
     date '+%s' > "/root/client-$c-mid.time.txt"
@@ -24,7 +24,7 @@ function do_clone_rm_kernel {
 function main {
     count=0
     while true; do
-        if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
+        if systemctl status ceph-fuse@-perf || [ "$(stat -f --format=%t /perf)" = c36400 ]; then
             break # shell ! is stupid, can't move to while
         fi
         sleep 5
@@ -33,8 +33,8 @@ function main {
         fi
     done
 
-    mkdir -p /cephfs/sources
-    pushd /cephfs/sources
+    mkdir -p /perf/sources
+    pushd /perf/sources
     if [ "$DISTRIBUTED" ]; then
         setfattr -n ceph.dir.pin.distributed -v 1 .
     fi

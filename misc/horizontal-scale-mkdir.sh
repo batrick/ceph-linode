@@ -12,7 +12,7 @@ fi
 
 
 function do_scale_test {
-    TESTDIR="/cephfs/"
+    TESTDIR="/perf/"
     mkdir -p "$TESTDIR"
     T=$(mktemp -d -p "$TESTDIR")
     cd "$T"
@@ -35,7 +35,7 @@ function do_scale_test {
 {
     count=0
     while true; do
-        if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
+        if systemctl status ceph-fuse@-perf || [ "$(stat -f --format=%t /perf)" = c36400 ]; then
             break # shell ! is stupid, can't move to while
         fi
         sleep 5

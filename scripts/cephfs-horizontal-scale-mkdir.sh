@@ -72,11 +72,11 @@ function do_tests {
 
     run ans -m shell -a "ceph config set mds mds_cache_memory_limit $size" mon-000
 
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/${TEST}/pre-df"
+    run ans -m shell -a 'df -h /perf/' clients &> "$dir/${TEST}/pre-df"
     date +%s > "$dir/${TEST}/start"
     run do_test "$(nclients "$num_clients")" |& tee "$dir/${TEST}/log"
     date +%s > "$dir/${TEST}/end"
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir/${TEST}/post-df"
+    run ans -m shell -a 'df -h /perf/' clients &> "$dir/${TEST}/post-df"
 
     run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
   done
@@ -98,7 +98,7 @@ function main {
         fi
         for ((i = 0; i < 2; i++)); do
           run do_playbook playbooks/cephfs-reset.yml
-          ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
+          ans -m shell -a "ceph fs set perf max_mds $max_mds" mon-000
           run do_tests "$exp" "$i" "$max_mds" "$num_clients" || true
         done
       done

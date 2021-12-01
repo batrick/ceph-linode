@@ -16,22 +16,15 @@
 
 - hosts: mon-000
   become: yes
-  vars:
-    data_min_pgs_per_osd: 128
-    replicas: 3
-    dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3
   tasks:
   - name: create fs metadata pool
-    shell: "ceph osd pool create cephfs_metadata replicated class-ssd-meta --size={{ replicas }}"
+    shell: "ceph osd pool create perf_metadata --pool_type=replicated --size=3 --pg_num=2048 --pg_num_min=2048 --autoscale_mode=off"
 
   - name: create fs data pool
-    shell: "ceph osd pool create cephfs_data {{ data_min_pgs_per_osd }} {{ data_min_pgs_per_osd }} replicated class-ssd --size={{ replicas }} --pg_num_min={{ data_min_pgs_per_osd }}"
-
-  - name: configure data pool target_size_ratio
-    shell: "ceph osd pool set cephfs_data target_size_ratio 0.9"
+    shell: "ceph osd pool create perf_data --pool_type=replicated --size=3 --pg_num=8192 --pg_num_min=8192 --autoscale_mode=off"
 
   - name: create fs
-    shell: "ceph fs new cephfs cephfs_metadata cephfs_data"
+    shell: "ceph fs new perf perf_metadata perf_data"
 
   - name: create client credential
-    shell: "ceph fs authorize cephfs client.cephfs / rwp"
+    shell: "ceph fs authorize perf client.perf / rwp"

@@ -7,14 +7,14 @@ function do_clone_kernel {
     if [ "$PIN" -a -n "$MAX_MDS" ]; then
         setfattr -n ceph.dir.pin -v $(( RANDOM % MAX_MDS )) .
     fi
-    git clone "file://$(realpath /cephfs/linux/.git)" "."
+    git clone "file://$(realpath /perf/linux/.git)" "."
     setfattr -n ceph.dir.pin -v -1 .
 }
 
 function main {
     count=0
     while true; do
-        if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
+        if systemctl status ceph-fuse@-perf || [ "$(stat -f --format=%t /perf)" = c36400 ]; then
             break # shell ! is stupid, can't move to while
         fi
         sleep 5
@@ -23,8 +23,8 @@ function main {
         fi
     done
 
-    mkdir -p /cephfs/sources
-    pushd /cephfs/sources
+    mkdir -p /perf/sources
+    pushd /perf/sources
     if [ "$DISTRIBUTED" ]; then
         setfattr -n ceph.dir.pin.distributed -v 1 .
     fi

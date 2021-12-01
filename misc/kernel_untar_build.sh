@@ -25,7 +25,7 @@ function do_kernel_build {
 function main {
     count=0
     while true; do
-        if systemctl status ceph-fuse@-cephfs || [ "$(stat -f --format=%t /cephfs)" = c36400 ]; then
+        if systemctl status ceph-fuse@-perf || [ "$(stat -f --format=%t /perf)" = c36400 ]; then
             break # shell ! is stupid, can't move to while
         fi
         sleep 5
@@ -37,8 +37,8 @@ function main {
     wget -q http://download.ceph.com/qa/linux-5.4.tar.gz
     LINUX=$(realpath linux-5.4.tar.gz)
 
-    mkdir -p /cephfs/kernels
-    pushd /cephfs/kernels
+    mkdir -p /perf/kernels
+    pushd /perf/kernels
     if [ "$DISTRIBUTED" ]; then
         setfattr -n ceph.dir.pin.distributed -v 1 .
     fi

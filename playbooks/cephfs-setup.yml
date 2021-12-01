@@ -28,21 +28,6 @@
   - name: allow random ephemeral pins
     shell: ceph config set mds mds_export_ephemeral_random true
 
-- hosts: mds-000
-  become: yes
-  tasks:
-  - name: compute MDS cache memory limit
-    # (RAM*1024) / 2.5
-    shell: grep MemTotal /proc/meminfo | awk '{ print int(($2 * 1024) / 3) * 2}'
-    delegate_to: mds-000
-    run_once: true
-    register: mdsmem
-
-  - name: set MDS cache size
-    shell: ceph config set mds mds_cache_memory_limit "{{ mdsmem.stdout }}"
-    run_once: true
-    delegate_to: mon-000
-
 - hosts: all
   become: yes
   tasks:
@@ -52,53 +37,9 @@
   - name: cp ceph-gather.service
     copy: src=../misc/ceph-gather.service dest=/etc/systemd/system/ owner=root group=root mode=0644
 
-  - name: install packages
-    yum: name=htop,jq,rsync
-
-  - name: create htoprc dir
-    file: path=/root/.config/htop state=directory
-
-  - name: install htoprc
-    copy: src=../misc/htoprc dest=/root/.config/htop/ owner=root group=root mode=0644
-
-# Make sure /cephfs is unmounted if it exists otherwise the check that creates /mnt will hang.
+# Make sure /perf is unmounted if it exists otherwise the check that creates /mnt will hang.
 - import_playbook: kernel-umount.yml
 - import_playbook: cephfs-destroy.yml
-
-- hosts: mon-000
-  become: yes
-  vars:
-    dedicated_metadata_osds: osd.0 osd.1 osd.2 osd.3
-  tasks:
-  - name: get osds
-    shell: "ceph osd ls"
-    register: osds
-
-  - name: remove all device classes
-    shell: "ceph osd crush rm-device-class {{ osds.stdout | replace('\n', ' ') }}"
-
-  - name: setup ssd device class
-    shell: "ceph osd crush set-device-class ssd {{ osds.stdout | replace('\n', ' ') }}"
-
-  - name: create replicated ssd crush rule
-    shell: ceph osd crush rule create-replicated class-ssd default host ssd
-
-  - name: remove ssd-meta device classes
-    shell: "ceph osd crush rm-device-class {{ dedicated_metadata_osds }}"
-
-  - name: setup ssd-meta device class
-    shell: "ceph osd crush set-device-class ssd-meta {{ dedicated_metadata_osds }}"
-
-  - name: create replicated ssd-meta crush rule
-    shell: ceph osd crush rule create-replicated class-ssd-meta default host ssd-meta
-
-#- hosts: mdss
-#  become: yes
-#  tasks:
-#  - name: install ceph debug packages
-#    yum:
-#      name: ceph-debuginfo
-#      state: present
 
 - hosts: clients
   become: yes
@@ -107,20 +48,15 @@
   - name: set mnt dir
     file:
       attributes: i
-      path: /cephfs/
+      path: /perf/
       state: directory
       owner: root
       group: root
       mode: 0000
 
   - name: install dependencies
-    yum:
-      name: git,autoconf,automake,bc,gdb,htop,jq,python2-pyyaml,attr,wget,openssl-devel,elfutils-libelf-devel
-      state: present
-
-  - name: install Development tools
-    yum:
-      name: "@Development tools"
+    apt:
+      name: build-essential,git,autoconf,automake,bc,gdb,htop,jq,attr,wget
       state: present
 
   - name: clone smallfile
@@ -131,7 +67,7 @@
 
   - name: check for ssh key
     find:
-      paths: .ssh/
+      paths: /root/.ssh/
       patterns: "id_rsa.pub"
     register: find_ssh
     delegate_to: client-000
@@ -144,12 +80,12 @@
     run_once: true
 
   - name: get public key
-    shell: cat .ssh/id_rsa.pub
+    shell: cat /root/.ssh/id_rsa.pub
     register: client000pub
     delegate_to: client-000
     run_once: true
 
   - name: register client-000 public key with other clients
     lineinfile:
-      path: .ssh/authorized_keys
+      path: /root/.ssh/authorized_keys
       line: "{{ client000pub.stdout }}"

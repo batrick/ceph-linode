@@ -51,13 +51,13 @@ function pretest {
   local who="$2"
   run mkdir -p "$where"
   run do_playbook playbooks/cephfs-pre-test.yml
-  run ans -m shell -a 'df -h /cephfs/' "$who" &> "${where}/pre-df"
+  run ans -m shell -a 'df -h /perf/' "$who" &> "${where}/pre-df"
   run date +%s > "${where}/start"
 }
 function posttest {
   local where="$1"
   local who="$2"
-  run ans -m shell -a 'df -h /cephfs/' "$who" &> "${where}/post-df"
+  run ans -m shell -a 'df -h /perf/' "$who" &> "${where}/post-df"
   run date +%s > "${where}/end"
   run do_playbook --extra-vars instance="${where}" playbooks/cephfs-post-test.yml
 }
@@ -72,12 +72,12 @@ function do_bootstrap {
   posttest "$D" client-000
   # Now create 100 other distinct clones of that for future tests
   D="$1/clone/"
-  ans -m shell -a "ceph fs set cephfs max_mds $MAX_MDS" mon-000
+  ans -m shell -a "ceph fs set perf max_mds $MAX_MDS" mon-000
   run ans --module-name=copy --args="src=misc/clone-kernel-sources.sh dest=/root/ owner=root group=root mode=755" clients
   pretest "$D" clients
   run ans -m shell -a "/root/clone-kernel-sources.sh 4 $MAX_MDS" "$(nclients 25)"
   posttest "$D" clients
-  ans -m shell -a "ceph fs set cephfs max_mds 1" mon-000
+  ans -m shell -a "ceph fs set perf max_mds 1" mon-000
 }
 
 function do_test {
@@ -94,7 +94,7 @@ function do_test {
   printf '%s\n' "$instance" > "$D"/instance
   printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$D"/date
   {
-    ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
+    ans -m shell -a "ceph fs set perf max_mds $max_mds" mon-000
     run ans --module-name=copy --args="src=misc/test-clone-rm-kernel.sh dest=/root/ owner=root group=root mode=755" clients
     pretest "$D" clients
     run ans -m shell -a "/root/test-clone-rm-kernel.sh --distributed $(( count > NUM_CLIENTS ? count/NUM_CLIENTS : 1 ))" "$(nclients "$count" NUM_CLIENTS)"

@@ -52,12 +52,12 @@ function nclients {
 function smallfile {
   clients="$1"
   shift
-  run ssh client-000 "smallfile/smallfile_cli.py --top /cephfs/ --host-set $clients --output-json /root/smf.json $common_params $*"
+  run ssh client-000 "smallfile/smallfile_cli.py --top /perf/ --host-set $clients --output-json /root/smf.json $common_params $*"
 }
 
 function save {
-  run ssh client-000 "cd /cephfs/network_shared/ && tar czf rsptimes.tar.gz rsptimes*csv"
-  run scp client-000:/cephfs/network_shared/rsptimes.tar.gz "$1/smf/"
+  run ssh client-000 "cd /perf/network_shared/ && tar czf rsptimes.tar.gz rsptimes*csv"
+  run scp client-000:/perf/network_shared/rsptimes.tar.gz "$1/smf/"
   run scp client-000:/root/smf.json "$1/smf/"
 }
 
@@ -77,11 +77,11 @@ function do_smallfile {
     printf '%s\n' "$(date +%Y%m%d-%H:%M)" > "$dir"/date
     run do_playbook playbooks/cephfs-pre-test.yml
 
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/smf/pre-df
+    run ans -m shell -a 'df -h /perf/' clients &> "$dir"/smf/pre-df
     date +%s > "$dir"/smf/start
     run smallfile "$(nclients "$num_clients")" --operation "$op" |& tee "$dir"/smf/log
     date +%s > "$dir"/smf/end
-    run ans -m shell -a 'df -h /cephfs/' clients &> "$dir"/smf/post-df
+    run ans -m shell -a 'df -h /perf/' clients &> "$dir"/smf/post-df
 
     run do_playbook --extra-vars instance="$dir" playbooks/cephfs-post-test.yml
     run save "$dir"
@@ -105,7 +105,7 @@ function main {
         fi
         for ((i = 0; i < 2; i++)); do
           run do_playbook playbooks/cephfs-reset.yml
-          ans -m shell -a "ceph fs set cephfs max_mds $max_mds" mon-000
+          ans -m shell -a "ceph fs set perf max_mds $max_mds" mon-000
           run do_smallfile "$exp" "$i" "$max_mds" "$num_clients" || true
         done
       done

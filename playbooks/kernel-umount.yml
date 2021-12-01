@@ -19,4 +19,4 @@
       mount:
         opts: -f -l
         state: unmounted
-        path: /cephfs
+        path: /perf

@@ -24,13 +24,13 @@
   #  shell: for gid in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.info[].gid'); do ceph mds fail "$gid"; done
 
   - name: fail all file systems
-    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs fail "$fs"; done
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do if [ "$fs" != cephfs ]; then ceph fs fail "$fs"; fi done
 
   - name: destroy all file systems
-    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do ceph fs rm "$fs" --yes-i-really-mean-it; done
+    shell: for fs in $(ceph -f json fs dump | jq --raw-output '.filesystems[].mdsmap.fs_name'); do if [ "$fs" != cephfs ]; then ceph fs rm "$fs" --yes-i-really-mean-it; fi done
 
-  - name: delete client.cephfs credential
-    shell: "ceph auth del client.cephfs"
+  - name: delete client.perf credential
+    shell: "ceph auth del client.perf"
 
-  - name: destroy all cephfs pools
-    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output 'select(.[] | test("^cephfs.*")) | .[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
+  - name: destroy all perf pools
+    shell: for pool in $(ceph -f json osd pool ls | jq --raw-output 'select(.[] | test("^perf.*")) | .[]'); do ceph osd pool rm "$pool" "$pool" --yes-i-really-really-mean-it; done
