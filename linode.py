@@ -215,7 +215,7 @@ class CephLinode():
         elif self.cluster.get('image'):
             i = self.cluster['image']
         else:
-            i = "linode/centos8"
+            i = "linode/centos-stream8"
 
         best = None
         for image in self._images:
