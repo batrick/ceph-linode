@@ -18,7 +18,24 @@
 - name: preconfigure linodes
   import_playbook: pre-config.yml
 
-- hosts: all
+- hosts: mons mgrs osds mdss grafana-servers
+  become: yes
+  tasks:
+  - name: setup mon-000 ssh key
+    delegate_to: mon-000
+    run_once: true
+    community.crypto.openssh_keypair:
+      path: /root/.ssh/id_ed25519
+      type: ed25519
+      comment: mon-000
+    register: cephadm_key
+
+  - name: register cephadm.id-ed25519 with hosts
+    lineinfile:
+      path: /root/.ssh/authorized_keys
+      line: "{{ cephadm_key.public_key }}"
+
+- hosts: mons clients
   become: yes
   tasks:
   - name: fetch cephadm
@@ -40,30 +57,123 @@
       owner: root
       content: "{{ cephadm.content }}"
 
-  - name: create /etc/ceph directory
-    file:
-      path: /etc/ceph
-      state: directory
-      owner: root
-      group: root
-      mode: 0755
+- hosts: mons
+  become: yes
+  tasks:
+  - name: build cephadm spec
+    delegate_to: mon-000
+    throttle: 1
+    blockinfile:
+      create: true
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN {{ inventory_hostname }}"
+      marker_end: "END {{ inventory_hostname }}"
+      content: |
+        service_type: host
+        hostname: {{ inventory_hostname }}
+        addr: {{ ansible_ssh_host }}
+        labels:
+          - {{ ceph_group }}
+          - _admin
+        ---
+
+- hosts: mgrs osds mdss grafana-servers
+  become: yes
+  tasks:
+  - name: build cephadm spec
+    delegate_to: mon-000
+    throttle: 1
+    blockinfile:
+      create: true
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN {{ inventory_hostname }}"
+      marker_end: "END {{ inventory_hostname }}"
+      content: |
+        service_type: host
+        hostname: {{ inventory_hostname }}
+        addr: {{ ansible_ssh_host }}
+        labels:
+          - {{ ceph_group }}
+        ---
 
 - hosts: mon-000
   become: yes
   tasks:
+  - name: set mon placement in spec
+    blockinfile:
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN mon spec"
+      marker_end: "END mon spec"
+      content: |
+        service_type: mon
+        placement:
+          label: mons
+        ---
+
+  - name: set mgr placement in spec
+    blockinfile:
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN mgr spec"
+      marker_end: "END mgr spec"
+      content: |
+        service_type: mgr
+        placement:
+          label: mgrs
+        ---
+
+
+  - name: set osd placement in spec
+    blockinfile:
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN osd spec"
+      marker_end: "END osd spec"
+      content: |
+        service_id: default
+        service_type: osd
+        placement:
+          label: osds
+        data_devices:
+          paths:
+            - /dev/sdc
+        ---
+
+  - name: set mds placement in spec
+    blockinfile:
+      state: present
+      insertafter: EOF
+      dest: /root/cluster.spec
+      marker_begin: "BEGIN mds spec"
+      marker_end: "END mds spec"
+      content: |
+        service_id: all
+        service_type: mds
+        placement:
+          label: mdss
+        ---
+
   - name: "add {{ RELEASE }} repos"
-    shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
+    shell: "/root/cephadm add-repo {{ CEPHADM_REPO }}"
 
   - name: "install {{ RELEASE }}"
-    shell: /root/cephadm install ceph-common
+    shell: "/root/cephadm install ceph-common"
 
-  - name: check ceph installed
+  - name: check ceph already bootstrapped
     stat:
       path: /etc/ceph/ceph.conf
     register: ceph_installed
 
-  - name: "bootstrap {{ RELEASE }}"
-    shell: /root/cephadm bootstrap --allow-fqdn-hostname --mon-ip {{ monitor_address }}
+  - name: "cephadm bootstrap"
+    shell: "/root/cephadm bootstrap --mon-ip {{ monitor_address }} --ssh-private-key /root/.ssh/id_ed25519 --ssh-public-key /root/.ssh/id_ed25519.pub --apply-spec /root/cluster.spec"
     when: not ceph_installed.stat.exists
 
   - name: config public network
@@ -84,61 +194,15 @@
   - name: disable stderr logging of cluster log
     shell: ceph config set global mon_cluster_log_to_stderr false
 
-
-- hosts: mons mgrs osds mdss grafana-servers
+- hosts: clients
   become: yes
   tasks:
-  - name: fetch ceph.pub
-    shell: cat /etc/ceph/ceph.pub
-    register: ceph_pub
-    delegate_to: mon-000
-    run_once: true
+  - name: "add {{ RELEASE }} repos"
+    shell: "/root/cephadm add-repo {{ CEPHADM_REPO }}"
 
-  - name: register ceph.pub with hosts
-    lineinfile:
-      path: /root/.ssh/authorized_keys
-      line: "{{ ceph_pub.stdout }}"
+  - name: "install {{ RELEASE }}"
+    shell: "/root/cephadm install ceph-common ceph-fuse"
 
-  - name: set hostname
-    shell: hostnamectl set-hostname {{ inventory_hostname }}
-
-  - name: add hostname to cephadm
-    shell: ceph orch host add "{{ inventory_hostname }}" "{{ ansible_ssh_host }}"
-    delegate_to: mon-000
-
-  - name: label host
-    shell: ceph orch host label add "{{ inventory_hostname }}" "{{ ceph_group }}"
-    delegate_to: mon-000
-
-- hosts: mon-000
-  become: yes
-  tasks:
-  - name: use labeled mons
-    shell: ceph orch apply mon label:mons
-
-  - name: use labeled mgrs
-    shell: ceph orch apply mgr label:mgrs
-
-  - name: add osds
-    shell:
-      cmd: |
-        tee /dev/stderr <<EOF | ceph orch apply -i -
-        service_type: osd
-        service_id: default
-        placement:
-          label: osds
-        data_devices:
-          paths:
-            - /dev/sdc
-        EOF
-
-  - name: use labeled mdss
-    shell: ceph orch apply mds all --placement=label:mdss
-    when: groups['mdss'] | default([]) | length > 0
-
-- hosts: all
-  become: yes
-  tasks:
   - name: generate min config
     shell: ceph config generate-minimal-conf
     delegate_to: mon-000
@@ -153,13 +217,3 @@
       owner: root
       group: root
       mode: 0644
-
-
-- hosts: clients
-  become: yes
-  tasks:
-  - name: "add {{ RELEASE }} repos"
-    shell: /root/cephadm add-repo {{ CEPHADM_REPO }}
-
-  - name: "install {{ RELEASE }}"
-    shell: /root/cephadm install ceph-common ceph-fuse

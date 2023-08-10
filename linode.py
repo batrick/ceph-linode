@@ -432,10 +432,11 @@ class CephLinode():
                     disk.delete()
                     changed = True
 
-                if node.tags:
-                    node.tags = []
-                    node.save()
-                    changed = True
+                # Tag deletion does not seem to work as of 2023-08-10
+#                if node.tags:
+#                    node.tags = []
+#                    node.save()
+#                    changed = True
 
                 if not changed:
                     break
