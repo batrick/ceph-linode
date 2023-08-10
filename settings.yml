@@ -16,7 +16,8 @@
   gather_facts: no
   tasks:
   - set_fact:
-      RELEASE: pacific
-      CEPHADM_REPO: --release pacific
-#     RELEASE: master
-#     CEPHADM_REPO: --dev master
+     # RELEASE must be a tagged version or release branch to pull cephadm from, probably just use the latest release, not main!
+     RELEASE: reef
+     # CEPHADM_REPO is the branch to actually deploy
+     # It can be a dev branch, e.g. CEPHADM_REPO: --dev wip-batrick-testing-20230808.012511
+     CEPHADM_REPO: --release reef

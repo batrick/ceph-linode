@@ -30,7 +30,7 @@
       force: yes
       mode: 0755
       return_content: yes
-      url: "https://github.com/ceph/ceph/raw/{{ RELEASE }}/src/cephadm/cephadm"
+      url: "https://download.ceph.com/rpm-{{ RELEASE }}/el9/noarch/cephadm"
 
   - name: distribute cephadm
     copy:
@@ -99,16 +99,15 @@
       path: /root/.ssh/authorized_keys
       line: "{{ ceph_pub.stdout }}"
 
-  - name: get hostname
-    shell: hostname --fqdn
-    register: myhostname
+  - name: set hostname
+    shell: hostnamectl set-hostname {{ inventory_hostname }}
 
   - name: add hostname to cephadm
-    shell: ceph orch host add "{{ myhostname.stdout }}" "{{ ansible_ssh_host }}"
+    shell: ceph orch host add "{{ inventory_hostname }}" "{{ ansible_ssh_host }}"
     delegate_to: mon-000
 
   - name: label host
-    shell: ceph orch host label add "{{ myhostname.stdout }}" "{{ ceph_group }}"
+    shell: ceph orch host label add "{{ inventory_hostname }}" "{{ ceph_group }}"
     delegate_to: mon-000
 
 - hosts: mon-000
