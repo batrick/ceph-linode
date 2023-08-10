@@ -27,6 +27,10 @@
 - hosts: all
   become: yes
   tasks:
+  - name: set hostname
+    ansible.builtin.hostname:
+      name: "{{ inventory_hostname }}"
+
   - name: create hosts from inventory
     become: no
     shell: ./misc/generate-hosts.py linodes
