@@ -30,7 +30,7 @@
       force: yes
       mode: 0755
       return_content: yes
-      url: "https://github.com/ceph/ceph/raw/{{ RELEASE }}/src/cephadm/cephadm"
+      url: "https://download.ceph.com/rpm-{{ RELEASE }}/el9/noarch/cephadm"
 
   - name: distribute cephadm
     copy:
